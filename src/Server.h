@@ -7,6 +7,8 @@
 #include <memory>
 #include <vector>
 
+#include "KeyValueStore.h"
+
 class Server
 {
 
@@ -26,6 +28,8 @@ private:
 	std::string HandleCommand(std::unique_ptr<std::vector<std::string>> ptrArray);
 
 private: /* variables */
+
+	KeyValueStore m_kvStore;
 
 	int m_dServerFd{-1};
 	int m_dConnBacklog{10};

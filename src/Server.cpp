@@ -13,6 +13,8 @@
 #define PING "ping"
 #define ECHO "echo"
 #define COMMAND "command"
+#define SET "set"
+#define GET "get"
 
 Server::~Server()
 {
@@ -149,11 +151,26 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 	std::transform(ptrArray->at(0).begin(), ptrArray->at(0).end(), ptrArray->at(0).begin(), ::tolower);
 	
 	if (ptrArray->at(0) == PING)
+	{
 		return "+PONG\r\n";
+	}
 	else if (ptrArray->at(0) == ECHO)
+	{
 		return "+" + ptrArray->at(1) + "\r\n";
+	}
 	else if (ptrArray->at(0) == COMMAND)
+	{
 		return "+OK\r\n";
+	}
+	else if (ptrArray->at(0) == SET)
+	{
+		return m_kvStore.set(ptrArray->at(1), ptrArray->at(2));
+	}
+	else if (ptrArray->at(0) == GET)
+	{
+		return m_kvStore.get(ptrArray->at(1));
+	}
 
-	return "$0\r\n\r\n";
+	return "$-1\r\n"; // null bulk string
 }
+
