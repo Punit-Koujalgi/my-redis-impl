@@ -8,6 +8,8 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
+#define MAXLINE 1024
+
 int main(int argc, char **argv) {
   // Flush after every std::cout / std::cerr
   std::cout << std::unitbuf;
@@ -56,7 +58,26 @@ int main(int argc, char **argv) {
   int client_fd = accept(server_fd, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
   std::cout << "Client connected\n";
   
-  send(client_fd, "+PONG\r\n", 7, 0);
+  while (true)
+  {
+    char buffer[MAXLINE]{};
+    auto bytesRead = read(client_fd, buffer, MAXLINE);
+    if ( bytesRead < 0)
+    {
+      std::cout << "Failed to read data" << std::endl;
+      break;
+    }
+    else if (bytesRead == 0)
+    {
+      std::cout << "End of input" << std::endl;
+      break;
+    }
+    else
+    {
+      std::cout << "Sending response..." << std::endl;
+      send(client_fd, "+PONG\r\n", 7, 0);
+    }
+  }
 
   close(server_fd);
 
