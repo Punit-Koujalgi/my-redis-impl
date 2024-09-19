@@ -16,7 +16,9 @@ public:
 	void runEventLoop();
 
 	int acceptNewConnection();
-	void HandleConnection(const int clientFd);
+
+	/* returns bytes read bcoz if 0 then connection must be closed */
+	int HandleConnection(const int clientFd);
 
 private:
 

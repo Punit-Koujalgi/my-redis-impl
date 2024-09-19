@@ -78,8 +78,9 @@ void Server::runEventLoop()
 				else
 				{
 					// One of the client connections has msg
-					HandleConnection(currSock);
-					FD_CLR(currSock, &currentSockets);
+					int bytesRead = HandleConnection(currSock);
+					if(bytesRead == 0)
+						FD_CLR(currSock, &currentSockets);
 				}
 			}
 		}
@@ -105,7 +106,7 @@ int Server::acceptNewConnection()
 	return clientFd;
 }
 
-void Server::HandleConnection(const int clientFd)
+int Server::HandleConnection(const int clientFd)
 {
 	// This function should take long => cardinal rule of event loop
 
@@ -126,5 +127,6 @@ void Server::HandleConnection(const int clientFd)
 		send(clientFd, "+PONG\r\n", 7, 0);
 	}
 
+	return bytesRead;
 	// We can also use feof() approach to read multiple lines of data
 }
