@@ -4,6 +4,9 @@
 
 #define MAXLINE 1024
 
+#include <memory>
+#include <vector>
+
 class Server
 {
 
@@ -15,12 +18,14 @@ public:
 	void startServer();
 	void runEventLoop();
 
-	int acceptNewConnection();
-
-	/* returns bytes read bcoz if 0 then connection must be closed */
-	int HandleConnection(const int clientFd);
-
 private:
+	int acceptNewConnection();
+	int HandleConnection(const int clientFd); /* returns bytes read bcoz if 0 then connection must be closed */
+
+	
+	std::string HandleCommand(std::unique_ptr<std::vector<std::string>> ptrArray);
+
+private: /* variables */
 
 	int m_dServerFd{-1};
 	int m_dConnBacklog{10};

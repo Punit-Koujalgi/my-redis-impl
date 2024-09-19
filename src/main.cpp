@@ -30,7 +30,11 @@ int main(int argc, char **argv) {
 	}
 	catch(const std::exception& e)
 	{
-		std::cerr << e.what() << '\n';
+		std::cerr << "Error: " << e.what() << '\n';
+	}
+	catch(...)
+	{
+		std::cerr << "Error: Unhandled exception occurred :(" << '\n';
 	}
 
 	std::cout << "Server exiting..." << std::endl;

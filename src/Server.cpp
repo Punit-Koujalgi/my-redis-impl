@@ -1,11 +1,18 @@
 
 #include "Server.h"
+#include "RESPDecoder.h"
 
 #include <iostream>
 #include <sys/socket.h> // for socket
 #include <arpa/inet.h> 	// for sockaddr_in
 #include <unistd.h>		// for read(), close()
 #include <cstdlib>
+#include <algorithm>
+
+/* Supported commands */
+#define PING "ping"
+#define ECHO "echo"
+#define COMMAND "command"
 
 Server::~Server()
 {
@@ -123,10 +130,30 @@ int Server::HandleConnection(const int clientFd)
 	}
 	else
 	{
-		std::cout << "Sending response..." << std::endl;
-		send(clientFd, "+PONG\r\n", 7, 0);
+		std::cout << "Got query [" << buffer << "]. Decoding..." << std::endl;
+
+		auto commandArgs(RESPDecoder::decodeArray(std::move(buffer)));
+		auto result{HandleCommand(std::move(commandArgs))};
+
+		std::cout << "Sending response...[" << result << "]\n";
+		//result = std::string("+") + result + "\r\n";
+		send(clientFd, result.c_str(), result.length(), 0);
 	}
 
 	return bytesRead;
 	// We can also use feof() approach to read multiple lines of data
+}
+
+std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrArray)
+{
+	std::transform(ptrArray->at(0).begin(), ptrArray->at(0).end(), ptrArray->at(0).begin(), ::tolower);
+	
+	if (ptrArray->at(0) == PING)
+		return "+PONG\r\n";
+	else if (ptrArray->at(0) == ECHO)
+		return "+" + ptrArray->at(1) + "\r\n";
+	else if (ptrArray->at(0) == COMMAND)
+		return "+OK\r\n";
+
+	return "$0\r\n\r\n";
 }
