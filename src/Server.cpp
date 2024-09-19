@@ -1,85 +1,130 @@
+
+#include "Server.h"
+
 #include <iostream>
+#include <sys/socket.h> // for socket
+#include <arpa/inet.h> 	// for sockaddr_in
+#include <unistd.h>		// for read(), close()
 #include <cstdlib>
-#include <string>
-#include <cstring>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 
-#define MAXLINE 1024
+Server::~Server()
+{
+	close(m_dServerFd);
+}
 
-int main(int argc, char **argv) {
-  // Flush after every std::cout / std::cerr
-  std::cout << std::unitbuf;
-  std::cerr << std::unitbuf;
+void Server::startServer()
+{
+	m_dServerFd = socket(AF_INET, SOCK_STREAM, 0);
+  	if (m_dServerFd < 0) {
+    	throw std::runtime_error("Failed to create server socket");
+  	}
+  
+  	// Since the tester restarts your program quite often, setting SO_REUSEADDR
+  	// ensures that we don't run into 'Address already in use' errors
+  	int reuse = 1;
+  	if (setsockopt(m_dServerFd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+    	throw std::runtime_error("setsockopt failed");
+  	}
+  
+	struct sockaddr_in server_addr;
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_addr.s_addr = INADDR_ANY;
+	server_addr.sin_port = htons(6379);
+  
+	if (bind(m_dServerFd, (struct sockaddr *) &server_addr, sizeof(server_addr)) != 0) {
+		 throw std::runtime_error("Failed to bind to port 6379");
+	}
 
-  // You can use print statements as follows for debugging, they'll be visible when running tests.
-  std::cout << "Logs from your program will appear here!\n";
+	if (listen(m_dServerFd, m_dConnBacklog) != 0) {
+		throw std::runtime_error("listen failed");
+	}
 
-  // Uncomment this block to pass the first stage
+	std::cout << "Waiting for a client to connect...\n";
+}
 
-  int server_fd = socket(AF_INET, SOCK_STREAM, 0);
-  if (server_fd < 0) {
-    std::cerr << "Failed to create server socket\n";
-    return 1;
-  }
-  
-  // Since the tester restarts your program quite often, setting SO_REUSEADDR
-  // ensures that we don't run into 'Address already in use' errors
-  int reuse = 1;
-  if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
-    std::cerr << "setsockopt failed\n";
-    return 1;
-  }
-  
-  struct sockaddr_in server_addr;
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_addr.s_addr = INADDR_ANY;
-  server_addr.sin_port = htons(6379);
-  
-  if (bind(server_fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) != 0) {
-    std::cerr << "Failed to bind to port 6379\n";
-    return 1;
-  }
-  
-  int connection_backlog = 5;
-  if (listen(server_fd, connection_backlog) != 0) {
-    std::cerr << "listen failed\n";
-    return 1;
-  }
-  
-  struct sockaddr_in client_addr;
-  int client_addr_len = sizeof(client_addr);
-  
-  std::cout << "Waiting for a client to connect...\n";
-  
-  int client_fd = accept(server_fd, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
-  std::cout << "Client connected\n";
-  
-  while (true)
-  {
-    char buffer[MAXLINE]{};
-    auto bytesRead = read(client_fd, buffer, MAXLINE);
-    if ( bytesRead < 0)
-    {
-      std::cout << "Failed to read data" << std::endl;
-      break;
-    }
-    else if (bytesRead == 0)
-    {
-      std::cout << "End of input" << std::endl;
-      break;
-    }
-    else
-    {
-      std::cout << "Sending response..." << std::endl;
-      send(client_fd, "+PONG\r\n", 7, 0);
-    }
-  }
+void Server::runEventLoop()
+{
+	fd_set currentSockets, readySockets;
+	timeval timeout = {120};
 
-  close(server_fd);
+#if 0 // test one connection
+	int clientfd = acceptNewConnection();
+	HandleConnection(clientfd);
+#endif
 
-  return 0;
+	std::cout << "Starting EventLoop..." << std::endl;
+
+	// initialize my current set
+	FD_ZERO(&currentSockets);
+	FD_SET(m_dServerFd, &currentSockets);
+
+	while (true)
+	{
+		readySockets = currentSockets;
+
+		if (select(FD_SETSIZE, &readySockets, nullptr, nullptr, nullptr) < 0)
+			throw std::runtime_error("select() error or timed out");
+
+		for (int currSock{0}; currSock < FD_SETSIZE; ++currSock)
+		{
+			if (FD_ISSET(currSock, &readySockets))
+			{
+				if (currSock == m_dServerFd)
+				{
+					// server received a connection
+					int clientSocket = acceptNewConnection();
+					FD_SET(clientSocket, &currentSockets);
+				}
+				else
+				{
+					// One of the client connections has msg
+					HandleConnection(currSock);
+					FD_CLR(currSock, &currentSockets);
+				}
+			}
+		}
+	}
+
+}
+
+int Server::acceptNewConnection()
+{
+	struct sockaddr_in clientAddr;
+	int clientAddrLen = sizeof(clientAddr);
+
+	int clientFd = accept(m_dServerFd, (struct sockaddr *) &clientAddr, (socklen_t *) &clientAddrLen);
+	
+	if (clientFd == -1)
+		throw std::runtime_error("Accept failed");
+
+	// get IP address
+	char clientIp[MAXLINE]{};
+	inet_ntop(AF_INET, &clientAddr, clientIp, MAXLINE);
+
+	std::cout << "Client <" << clientIp << "> connected\n";
+	return clientFd;
+}
+
+void Server::HandleConnection(const int clientFd)
+{
+	// This function should take long => cardinal rule of event loop
+
+	char buffer[MAXLINE]{};
+	auto bytesRead = read(clientFd, buffer, MAXLINE);
+
+	if ( bytesRead < 0)
+	{
+		throw std::runtime_error("Failed to read data");
+	}
+	else if (bytesRead == 0)
+	{
+		std::cout << "No data read" << std::endl;
+	}
+	else
+	{
+		std::cout << "Sending response..." << std::endl;
+		send(clientFd, "+PONG\r\n", 7, 0);
+	}
+
+	// We can also use feof() approach to read multiple lines of data
 }
