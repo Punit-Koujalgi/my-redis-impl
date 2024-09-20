@@ -57,10 +57,14 @@ void Server::startServer(int argc, char **argv)
     	throw std::runtime_error("setsockopt failed");
   	}
   
+	if (m_mapConfiguration["port"].empty())	
+			m_mapConfiguration["port"] = "6379";
+	std::cout << "Redis port: " << m_mapConfiguration["port"] << std::endl;
+
 	struct sockaddr_in server_addr;
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_addr.s_addr = INADDR_ANY;
-	server_addr.sin_port = htons(6379);
+	server_addr.sin_port = htons(stoi(m_mapConfiguration["port"]));
   
 	if (bind(m_dServerFd, (struct sockaddr *) &server_addr, sizeof(server_addr)) != 0) {
 		 throw std::runtime_error("Failed to bind to port 6379");
