@@ -156,7 +156,7 @@ void KeyValueStore::initializeKeyValues(const std::string& dbpath, const std::st
 			// expiry time in seconds followed by 4 byte - uint32_t
 			uint32_t seconds;
 			rdb.read(reinterpret_cast<char*>(&seconds), sizeof(seconds));
-			expire_time_s = be32toh(seconds);
+			//expire_time_s = be32toh(seconds);
 			std::cout << "EXPIRETIME: " << expire_time_s << std::endl;
 
 			rdb.read(reinterpret_cast<char*>(&opcode), 1);
@@ -166,7 +166,7 @@ void KeyValueStore::initializeKeyValues(const std::string& dbpath, const std::st
 		{
 			// expiry time in ms, followd by 8 byte unsigned - uint64_t
 			rdb.read(reinterpret_cast<char*>(&expire_time_ms), sizeof(expire_time_ms));
-			expire_time_ms = be64toh(expire_time_ms);
+			//expire_time_ms = be64toh(expire_time_ms);
 			std::cout << "EXPIRETIME ms: " << expire_time_ms << std::endl;
 
 			rdb.read(reinterpret_cast<char*>(&opcode), 1);
