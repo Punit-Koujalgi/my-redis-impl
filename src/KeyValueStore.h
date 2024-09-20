@@ -31,7 +31,7 @@ public:
 	const std::string set(const std::string& key, const std::string& value, int timeout = 0);
 	const std::string set(const std::string& key, const std::vector<std::string>& arrVal);
 
-	
+	std::unique_ptr<std::vector<std::string>> getAllKeys(const std::string& regex = "");
 
 private:
 

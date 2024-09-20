@@ -120,8 +120,8 @@ void KeyValueStore::initializeKeyValues(const std::string& dbpath, const std::st
 			if (hash_table_size.first.has_value() &&
 				expire_hash_table_size.first.has_value())
 			{
-				std::cout << "Hash table size: " << hash_table_size.first.value()
-							<< "Expiry hash table size: " << expire_hash_table_size.first.value();
+				std::cout << "Hash table size: " << hash_table_size.first.value() << " "
+							<< "Expiry hash table size: " << expire_hash_table_size.first.value() << std::endl;
 			}
 			break;
 		}
@@ -304,5 +304,17 @@ std::string KeyValueStore::read_byte_to_string(std::ifstream &rdb)
 	return "";
 }
 
+std::unique_ptr<std::vector<std::string>> KeyValueStore::getAllKeys(const std::string& regex)
+{
+	auto result{std::make_unique<std::vector<std::string>>()};
 
+	std::cout << "Got regex: " << regex << std::endl;
+
+	for (const auto& key: m_mapKeyValues)
+	{
+		result->push_back(key.first);
+	}
+
+	return result;
+}
 

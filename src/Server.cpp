@@ -19,6 +19,7 @@
 #define GET "get"
 #define CONFIG "config"
 #define SAVE "save"
+#define KEYS "keys"
 
 Server::~Server()
 {
@@ -209,7 +210,11 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 	}
 	else if (ptrArray->at(0) == SAVE)
 	{
-
+		// todo: save rdb
+	}
+	else if (ptrArray->at(0) == KEYS)
+	{
+		return RESPEncoder::encodeArray(*m_kvStore.getAllKeys(ptrArray->at(1)));
 	}
 
 	return "$-1\r\n"; // null bulk string
