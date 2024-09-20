@@ -183,7 +183,7 @@ void KeyValueStore::initializeKeyValues(const std::string& dbpath, const std::st
 		if (expire_time_s == 0 || t.tv_sec < expire_time_s)
 		{
 			std::cout << "Adding " << key << " -> " << value << std::endl;
-			m_mapKeyValues[key] = value;
+			m_mapKeyValues[key] = RESPEncoder::encodeString(value);
 
 			if (expire_time_s != 0)
 			{
