@@ -199,7 +199,8 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 		if (toLower(ptrArray->at(1)) == "get" &&
 				m_mapConfiguration.find(ptrArray->at(2)) != m_mapConfiguration.end())
 		{
-			return RESPEncoder::encodeString(m_mapConfiguration[ptrArray->at(2)]);
+
+			return RESPEncoder::encodeArray({ptrArray->at(2), m_mapConfiguration[ptrArray->at(2)]});
 		}
 	}
 
