@@ -142,7 +142,7 @@ void KeyValueStore::initializeKeyValues(const std::string& dbpath, const std::st
 			std::cout << "Reached end of database" << std::endl;
 			uint64_t checksum;
 			rdb.read(reinterpret_cast<char*>(&checksum), sizeof(checksum));
-			checksum = be64toh(checksum); // be is big endian to host order
+			//checksum = be64toh(checksum); // be is big endian to host order
 			std::cout << "DB checksum: " << checksum << std::endl;
 			
 			// Exit while loop
@@ -185,17 +185,11 @@ void KeyValueStore::initializeKeyValues(const std::string& dbpath, const std::st
 			std::cout << "Adding " << key << " -> " << value << std::endl;
 			set(key, value, expire_time_ms);
 
+			// Overwrite value based on fact that expire_time_ms is unix time stamp for expiry in ms
 			if (expire_time_ms != 0)
 			{
 				t.tv_sec = expire_time_ms / 1000;
 				t.tv_usec = (expire_time_ms % 1000) * 1000;
-
-				// if (t.tv_usec > 1000000)
-				// {
-				// 	// update seconds
-				// 	t.tv_sec += t.tv_usec / 1000000;
-				// 	t.tv_usec = t.tv_usec % 1000000;
-				// }
 
 				m_mapKeyTimeouts[key] = t;
 			}
@@ -300,14 +294,14 @@ std::string KeyValueStore::read_byte_to_string(std::ifstream &rdb)
 		{
 			int16_t val;
 			rdb.read(reinterpret_cast<char *>(&val), sizeof(val));
-			val = be16toh(val);
+			//val = be16toh(val);
 			return std::to_string(val);
 		}
 		case 32:
 		{
 			int32_t val;
 			rdb.read(reinterpret_cast<char *>(&val), sizeof(val));
-			val = be32toh(val);
+			//val = be32toh(val);
 			return std::to_string(val);
 		}
 	}
