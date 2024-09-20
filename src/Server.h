@@ -17,7 +17,7 @@ public:
 	Server() = default;
 	~Server();
 
-	void startServer();
+	void startServer(int argc, char **argv);
 	void runEventLoop();
 
 private:
@@ -30,6 +30,7 @@ private:
 private: /* variables */
 
 	KeyValueStore m_kvStore;
+	std::unordered_map<std::string, std::string> m_mapConfiguration;
 
 	int m_dServerFd{-1};
 	int m_dConnBacklog{10};

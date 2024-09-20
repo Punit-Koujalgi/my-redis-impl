@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
 	{
 		Server tcpServer;
 
-		tcpServer.startServer();
+		tcpServer.startServer(argc, argv);
 		tcpServer.runEventLoop();
 
 	}
