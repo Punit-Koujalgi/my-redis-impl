@@ -236,6 +236,15 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 
 std::string Server::getReplicationRole()
 {
+	if (m_mapConfiguration.find("replicaof") != m_mapConfiguration.end())
+	{
+		std::string masterStr = m_mapConfiguration["replicaof"];
+		std::string master = masterStr.substr(masterStr.find(' ') + 1);
+
+		std::cout << "This is Slave [Master: " << master << "]\n";
+		return "slave";
+	}
+
 	return "master";
 }
 
