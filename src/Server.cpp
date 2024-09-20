@@ -236,10 +236,10 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 
 			if (role == "master")
 			{
-				result.append("master_replid: ");
+				result.append("master_replid:");
 				result.append(m_mapConfiguration["master_replid"]);
 				result.append("\n");
-				result.append("master_repl_offset: ");
+				result.append("master_repl_offset:");
 				result.append(m_mapConfiguration["master_repl_offset"]);
 				result.append("\n");
 			}
