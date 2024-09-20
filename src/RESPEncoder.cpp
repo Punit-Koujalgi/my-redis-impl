@@ -12,6 +12,15 @@ const std::string RESPEncoder::encodeString(const std::string& str)
 	return result;
 }
 
+const std::string RESPEncoder::encodeSimpleString(const std::string& str)
+{
+	std::string result{"+"};
+	result.append(str);
+	result.append("\r\n");
+
+	return result;
+}
+
 const std::string RESPEncoder::encodeArray(const std::vector<std::string>& arr)
 {
 	std::string result{"*"};

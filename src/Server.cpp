@@ -21,6 +21,8 @@
 #define SAVE "save"
 #define KEYS "keys"
 #define INFO "info"
+#define REPLCONF "replconf"
+#define PSYNC "psync"
 
 Server::~Server()
 {
@@ -252,6 +254,18 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 			return RESPEncoder::encodeString(result);
 		}
 	}
+	else if (ptrArray->at(0) == REPLCONF)
+	{
+		return "+OK\r\n";
+	}
+	else if (ptrArray->at(0) == PSYNC)
+	{
+		std::string result = "FULLRESYNC " +
+				m_mapConfiguration["master_replid"] + " " +
+				m_mapConfiguration["master_repl_offset"] + "\r\n";
+
+		return RESPEncoder::encodeSimpleString(result);
+	}
 
 
 	return "$-1\r\n"; // null bulk string
@@ -295,26 +309,58 @@ void Server::initializeSlave()
 	if (connect(masterConnSocket, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0)
 		throw std::runtime_error("Failed to connect to master");
 
-	// Connected!!
+	// Connected!! Threeway handshake underway
+	// Step 1:
+	sendData(masterConnSocket, {PING});
+	auto result = recvData(masterConnSocket);
+	if (toLower(*RESPDecoder::decodeString(result)) != toLower("pong"))
+		throw std::runtime_error("One step of threeway handshare failed");
 
-	std::string pingReq = RESPEncoder::encodeArray({"PING"});
+	// Step 2a:
+	std::vector<std::string> input{"REPLCONF", "listening-port", m_mapConfiguration["port"]};
+	sendData(masterConnSocket, input);
+	result = recvData(masterConnSocket);
+	if (toLower(*RESPDecoder::decodeString(result)) != toLower("ok"))
+		throw std::runtime_error("Second step of threeway handshare failed");
 
-	if (write(masterConnSocket, pingReq.c_str(), pingReq.length()) < 0)
+	// Step 2b:
+	std::vector<std::string> input2{"REPLCONF", "capa", "psync2"};
+	sendData(masterConnSocket, input2);
+	result = recvData(masterConnSocket);
+	if (toLower(*RESPDecoder::decodeString(result)) != toLower("ok"))
+		throw std::runtime_error("Second step of threeway handshare failed");
+
+	// Step 3:
+	std::vector<std::string> input3{"PSYNC", "?", "-1"};
+	sendData(masterConnSocket, input3);
+	result = recvData(masterConnSocket);
+	// if (toLower(*RESPDecoder::decodeString(result)) != toLower("ok"))
+	// 	throw std::runtime_error("Second step of threeway handshare failed");
+
+	std::cout << "Threeway handshake complete" << std::endl;
+}
+
+void Server::sendData(const int fd, const std::vector<std::string>& vec)
+{
+	std::string pingReq = RESPEncoder::encodeArray(vec);
+
+	if (write(fd, pingReq.c_str(), pingReq.length()) < 0)
 		throw std::runtime_error("Failed to send ping request to master");
+}
 
+std::string Server::recvData(const int fd)
+{
+	std::string result;
 	char recvline[MAXLINE]{};
 
-	while(true)
-	{
-		int bytesRead = read(masterConnSocket, recvline, MAXLINE - 1);
-		if (bytesRead < 0)
-			throw std::runtime_error("Failed to receive response from master");
-		else if (bytesRead == 0)
-			break;
+	int bytesRead = read(fd, recvline, MAXLINE - 1);
+	if (bytesRead < 0)
+		throw std::runtime_error("Failed to receive response from master");
 
-		std::cout << recvline;
-	}
+	result.append(recvline);
 
+	std::cout << "Received data: " << result << std::endl;
+	return result;
 }
 
 

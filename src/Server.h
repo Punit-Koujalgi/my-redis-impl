@@ -29,6 +29,9 @@ private:
 	std::string getReplicationRole();
 	void initializeSlave();
 
+	void sendData(const int fd, const std::vector<std::string>& vec);
+	std::string recvData(const int fd); 
+
 private: /* variables */
 
 	KeyValueStore m_kvStore;
