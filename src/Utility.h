@@ -10,3 +10,4 @@ inline const std::string toLower(const std::string& str)
 	return res;
 } 
 
+

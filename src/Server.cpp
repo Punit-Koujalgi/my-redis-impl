@@ -281,6 +281,8 @@ void Server::initializeSlave()
 
 	std::string masterStr = m_mapConfiguration["replicaof"]; // "<master IP> <master port>"
 	std::string masterIP = masterStr.substr(0, masterStr.find(' '));
+	if (masterIP == "localhost")
+		masterIP = "127.0.0.1"; // todo: write utiity to convert host to ip
 	std::string port = masterStr.substr(masterStr.find(' ') + 1);
 
 	struct sockaddr_in servaddr;
