@@ -48,7 +48,7 @@ void Server::startServer(int argc, char **argv)
 
 	if (getReplicationRole() == "master")
 	{
-		m_mapConfiguration["master_replid "] = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
+		m_mapConfiguration["master_replid"] = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
 		m_mapConfiguration["master_repl_offset"] = "0";
 	}
 
