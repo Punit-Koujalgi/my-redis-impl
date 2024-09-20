@@ -210,7 +210,7 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 	}
 	else if (ptrArray->at(0) == SAVE)
 	{
-		// todo: save rdb
+		// todo: save memory snapshot in rdb format 
 	}
 	else if (ptrArray->at(0) == KEYS)
 	{
