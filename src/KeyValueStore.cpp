@@ -187,8 +187,16 @@ void KeyValueStore::initializeKeyValues(const std::string& dbpath, const std::st
 
 			if (expire_time_ms != 0)
 			{
-				t.tv_sec = expire_time_ms / 1000000;
-				t.tv_usec = expire_time_ms % 1000000;
+				t.tv_sec = expire_time_ms / 1000;
+				t.tv_usec = (expire_time_ms % 1000) * 1000;
+
+				// if (t.tv_usec > 1000000)
+				// {
+				// 	// update seconds
+				// 	t.tv_sec += t.tv_usec / 1000000;
+				// 	t.tv_usec = t.tv_usec % 1000000;
+				// }
+
 				m_mapKeyTimeouts[key] = t;
 			}
 		}
