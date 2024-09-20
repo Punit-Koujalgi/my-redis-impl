@@ -81,6 +81,11 @@ void Server::startServer(int argc, char **argv)
 		throw std::runtime_error("listen failed");
 	}
 
+	if (getReplicationRole() == "slave")
+	{
+		initializeSlave();
+	}
+
 	std::cout << "Waiting for a client to connect...\n";
 }
 
@@ -265,4 +270,49 @@ std::string Server::getReplicationRole()
 
 	return "master";
 }
+
+void Server::initializeSlave()
+{
+	/* Performs three way handshake with master */
+
+	int masterConnSocket = socket(AF_INET, SOCK_STREAM, 0);
+	if (masterConnSocket < 0)
+		throw std::runtime_error("Failed to create master conn socket");
+
+	std::string masterStr = m_mapConfiguration["replicaof"]; // "<master IP> <master port>"
+	std::string masterIP = masterStr.substr(0, masterStr.find(' '));
+	std::string port = masterStr.substr(masterStr.find(' ') + 1);
+
+	struct sockaddr_in servaddr;
+	servaddr.sin_family = AF_INET;
+	servaddr.sin_port = htons(stoi(port));
+	
+	if (inet_pton(AF_INET, masterIP.c_str(), &servaddr.sin_addr) <= 0)
+		throw std::runtime_error("Failed to convert IP to network format");
+	
+	if (connect(masterConnSocket, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0)
+		throw std::runtime_error("Failed to connect to master");
+
+	// Connected!!
+
+	std::string pingReq = RESPEncoder::encodeArray({"PING"});
+
+	if (write(masterConnSocket, pingReq.c_str(), pingReq.length()) < 0)
+		throw std::runtime_error("Failed to send ping request to master");
+
+	char recvline[MAXLINE]{};
+
+	while(true)
+	{
+		int bytesRead = read(masterConnSocket, recvline, MAXLINE - 1);
+		if (bytesRead < 0)
+			throw std::runtime_error("Failed to receive response from master");
+		else if (bytesRead == 0)
+			break;
+
+		std::cout << recvline;
+	}
+
+}
+
 

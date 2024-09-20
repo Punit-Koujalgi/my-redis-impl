@@ -27,6 +27,7 @@ private:
 	
 	std::string HandleCommand(std::unique_ptr<std::vector<std::string>> ptrArray);
 	std::string getReplicationRole();
+	void initializeSlave();
 
 private: /* variables */
 
