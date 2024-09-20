@@ -18,6 +18,7 @@
 #define SET "set"
 #define GET "get"
 #define CONFIG "config"
+#define SAVE "save"
 
 Server::~Server()
 {
@@ -39,6 +40,9 @@ void Server::startServer(int argc, char **argv)
 			}
 		}
 	}
+
+	// Initialize from rdb file if it's present
+	m_kvStore.initializeKeyValues(m_mapConfiguration["dir"], m_mapConfiguration["dbfilename"]);
 
 	m_dServerFd = socket(AF_INET, SOCK_STREAM, 0);
   	if (m_dServerFd < 0) {
@@ -202,6 +206,10 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 
 			return RESPEncoder::encodeArray({ptrArray->at(2), m_mapConfiguration[ptrArray->at(2)]});
 		}
+	}
+	else if (ptrArray->at(0) == SAVE)
+	{
+
 	}
 
 	return "$-1\r\n"; // null bulk string
