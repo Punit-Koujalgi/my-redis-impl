@@ -185,12 +185,12 @@ void KeyValueStore::initializeKeyValues(const std::string& dbpath, const std::st
 			std::cout << "Adding " << key << " -> " << value << std::endl;
 			set(key, value, expire_time_ms);
 
-			// if (expire_time_s != 0)
-			// {
-			// 	t.tv_sec = expire_time_s;
-			// 	t.tv_usec = expire_time_ms / 1000;
-			// 	m_mapKeyTimeouts[key] = t;
-			// }
+			if (expire_time_ms != 0)
+			{
+				t.tv_sec = expire_time_ms / 1000000;
+				t.tv_usec = expire_time_ms % 1000000;
+				m_mapKeyTimeouts[key] = t;
+			}
 		}
 
 	}
