@@ -20,6 +20,7 @@
 #define CONFIG "config"
 #define SAVE "save"
 #define KEYS "keys"
+#define INFO "info"
 
 Server::~Server()
 {
@@ -220,7 +221,21 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 	{
 		return RESPEncoder::encodeArray(*m_kvStore.getAllKeys(ptrArray->at(1)));
 	}
+	else if (ptrArray->at(0) == INFO)
+	{
+		if (ptrArray->at(1) == toLower("replication"))
+		{
+			std::string result = "role:" + getReplicationRole() + "\n";
+			return RESPEncoder::encodeString(result);
+		}
+	}
+
 
 	return "$-1\r\n"; // null bulk string
+}
+
+std::string Server::getReplicationRole()
+{
+	return "master";
 }
 
