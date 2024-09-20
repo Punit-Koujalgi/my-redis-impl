@@ -46,6 +46,12 @@ void Server::startServer(int argc, char **argv)
 	// Initialize from rdb file if it's present
 	m_kvStore.initializeKeyValues(m_mapConfiguration["dir"], m_mapConfiguration["dbfilename"]);
 
+	if (getReplicationRole() == "master")
+	{
+		m_mapConfiguration["master_replid "] = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
+		m_mapConfiguration["master_repl_offset"] = "0";
+	}
+
 	m_dServerFd = socket(AF_INET, SOCK_STREAM, 0);
   	if (m_dServerFd < 0) {
     	throw std::runtime_error("Failed to create server socket");
@@ -225,7 +231,19 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 	{
 		if (ptrArray->at(1) == toLower("replication"))
 		{
-			std::string result = "role:" + getReplicationRole() + "\n";
+			std::string role = getReplicationRole();
+			std::string result = "role:" + role + "\n";
+
+			if (role == "master")
+			{
+				result.append("master_replid: ");
+				result.append(m_mapConfiguration["master_replid"]);
+				result.append("\n");
+				result.append("master_repl_offset: ");
+				result.append(m_mapConfiguration["master_repl_offset"]);
+				result.append("\n");
+			}
+
 			return RESPEncoder::encodeString(result);
 		}
 	}
