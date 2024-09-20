@@ -137,8 +137,8 @@ int Server::HandleConnection(const int clientFd)
 		auto commandArgs(RESPDecoder::decodeArray(std::move(buffer)));
 		auto result{HandleCommand(std::move(commandArgs))};
 
-		std::cout << "Sending response...[" << result << "]\n";
-		//result = std::string("+") + result + "\r\n";
+		//std::cout << "Sending response...[" << result << "]\n";
+		std::cout << "Sending response..." << std::endl;
 		send(clientFd, result.c_str(), result.length(), 0);
 	}
 
@@ -164,6 +164,9 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 	}
 	else if (ptrArray->at(0) == SET)
 	{
+		if (ptrArray->size() > 3)
+			return m_kvStore.set(ptrArray->at(1), ptrArray->at(2), stoi(ptrArray->at(4)));
+
 		return m_kvStore.set(ptrArray->at(1), ptrArray->at(2));
 	}
 	else if (ptrArray->at(0) == GET)
