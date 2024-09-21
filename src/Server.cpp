@@ -337,10 +337,13 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 			timeUntil.tv_usec = timeUntil.tv_usec % 1000000;
 		}
 
+		std::cout << "Got thresholds: " << replicaThreshold << " " << timeThreshold << std::endl;
+
 		for (auto& replica : m_mapReplicaPortSocket)
 		{
 			try
 			{
+				std::cout << "Sending data to replica: " << replica.first << std::endl;
 				sendData(replica.second, {REPLCONF, "getack", "wait"});
 				auto ackResponse{SocketReader(replica.second).ReadArray()};
 
@@ -358,7 +361,6 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 				else
 					throw std::runtime_error("Not up to date");
 			}
-
 			catch (const std::exception& e)
 			{
 				std::cout << "[Replica: " << replica.first
