@@ -15,7 +15,7 @@ std::unique_ptr<std::string> RESPDecoder::decodeString(const std::string& str)
 	else if (str[0] == '$')
 		return std::make_unique<std::string>(decodeBulkString(str));
 	else
-		throw std::runtime_error(std::string("Command [") + str[0] + std::string("] not yet handled"));
+		throw std::runtime_error(std::string("Type [") + str[0] + std::string("] not yet handled"));
 }
 
 std::string RESPDecoder::decodeSimpleString(const std::string& str)

@@ -3,6 +3,7 @@
 #include "RESPEncoder.h"
 #include "RESPDecoder.h"
 #include "Utility.h"
+#include "SocketReader.h"
 
 #include <iostream>
 #include <sys/socket.h> // for socket
@@ -347,28 +348,28 @@ void Server::initializeSlave()
 	// Connected!! Threeway handshake underway
 	// Step 1:
 	sendData(m_dMasterConnSocket, {PING});
-	auto result = recvData(m_dMasterConnSocket);
-	if (toLower(*RESPDecoder::decodeString(result)) != toLower("pong"))
+	auto result = SocketReader(m_dMasterConnSocket).readSimpleString();
+	if (toLower(result) != toLower("pong"))
 		throw std::runtime_error("One step of threeway handshare failed");
 
 	// Step 2a:
 	std::vector<std::string> input{"REPLCONF", "listening-port", m_mapConfiguration["port"]};
 	sendData(m_dMasterConnSocket, input);
-	result = recvData(m_dMasterConnSocket);
-	if (toLower(*RESPDecoder::decodeString(result)) != toLower("ok"))
+	result = SocketReader(m_dMasterConnSocket).readSimpleString();
+	if (toLower(result) != toLower("ok"))
 		throw std::runtime_error("Second step of threeway handshare failed");
 
 	// Step 2b:
 	std::vector<std::string> input2{"REPLCONF", "capa", "psync2"};
 	sendData(m_dMasterConnSocket, input2);
-	result = recvData(m_dMasterConnSocket);
-	if (toLower(*RESPDecoder::decodeString(result)) != toLower("ok"))
+	result = SocketReader(m_dMasterConnSocket).readSimpleString();
+	if (toLower(result) != toLower("ok"))
 		throw std::runtime_error("Second step of threeway handshare failed");
 
 	// Step 3:
 	std::vector<std::string> input3{"PSYNC", "?", "-1"};
 	sendData(m_dMasterConnSocket, input3);
-	result = *RESPDecoder::decodeString(recvData(m_dMasterConnSocket));
+	result = SocketReader(m_dMasterConnSocket).readSimpleString();
 
 	// Store Master Information in Configuration
 	m_mapConfiguration["masterIP"] = masterIP;
@@ -380,7 +381,8 @@ void Server::initializeSlave()
 	if (m_mapConfiguration["masterOffset"] == "0")
 	{
 		// Master should be sending empty rdb file now
-		result = recvData(m_dMasterConnSocket);
+		result = SocketReader(m_dMasterConnSocket).readRDBFile();
+		std::cout << result << " " << result.length() << std::endl;
 		result = result.substr(result.find('\n') + 1);
 		createFileWithData("/tmp/emptyDb.rdb", result); /* Even if data is empty we can still info like version, metadata etc */
 		try
@@ -415,6 +417,7 @@ void Server::sendData(const int fd, const std::vector<std::string>& vec)
 
 std::string Server::recvData(const int fd)
 {
+	/* replaced with socketReader() to read commands one at a time
 	std::string result;
 	char recvline[MAXLINE]{};
 
@@ -429,6 +432,8 @@ std::string Server::recvData(const int fd)
 
 	std::cout << "Received data: " << result << std::endl;
 	return result;
+	*/
+	return {}; 
 }
 
 bool Server::shouldPropogateCommand(const std::string& userCmd)
