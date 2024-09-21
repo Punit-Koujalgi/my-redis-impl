@@ -11,6 +11,7 @@
 #include <unistd.h>		// for read(), close()
 #include <cstdlib>
 #include <algorithm>
+#include <sys/time.h>
 
 /* Supported commands */
 #define PING "ping"
@@ -24,6 +25,7 @@
 #define INFO "info"
 #define REPLCONF "replconf"
 #define PSYNC "psync"
+#define WAIT "wait"
 
 Server::~Server()
 {
@@ -54,6 +56,9 @@ void Server::startServer(int argc, char **argv)
 		m_mapConfiguration["master_replid"] = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb";
 		m_mapConfiguration["master_repl_offset"] = "0";
 	}
+
+	if (m_mapConfiguration["waitcmd_offset"].empty())
+			m_mapConfiguration["waitcmd_offset"] = "0";
 
 	m_dServerFd = socket(AF_INET, SOCK_STREAM, 0);
   	if (m_dServerFd < 0) {
@@ -201,6 +206,12 @@ int Server::HandleConnection(const int clientFd)
 			+ RESPEncoder::encodeArray(commandArgs).length()); // Keep updating length of processed commands
 	}
 
+	if (shouldPropogateCommand(currentCmd)) // A write command: track offset on both master and standby
+	{
+		m_mapConfiguration["waitcmd_offset"] = std::to_string(std::stoi(m_mapConfiguration["waitcmd_offset"])
+			+ RESPEncoder::encodeArray(commandArgs).length()); // Keep updating length of write commands
+	}
+
 	return 0;
 }
 
@@ -281,7 +292,10 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 
 		if (ptrArray->size() == 3 && toLower(ptrArray->at(1)) == "getack")
 		{
-			return RESPEncoder::encodeArray({REPLCONF, "ACK", m_mapConfiguration["master_repl_offset"]});
+			if (toLower(ptrArray->at(1)) == "wait")
+				return RESPEncoder::encodeArray({REPLCONF, "ACK", m_mapConfiguration["waitcmd_offset"]});
+			else
+				return RESPEncoder::encodeArray({REPLCONF, "ACK", m_mapConfiguration["master_repl_offset"]});
 		}
 
 		return "+OK\r\n";
@@ -306,7 +320,57 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 
 		return "$" + std::to_string(empty_rdb.length()) + "\r\n" + empty_rdb;
 	}
+	else if (ptrArray->at(0) == WAIT)
+	{
+		int replicaThreshold = std::stoi(ptrArray->at(1));
+		int timeThreshold = std::stoi(ptrArray->at(2));
 
+		timeval timeUntil;
+		int replicasMetThreshold = 0;
+		gettimeofday(&timeUntil, nullptr);
+
+		// set timeout
+		timeUntil.tv_usec += timeThreshold * 1000;
+		if (timeUntil.tv_usec > 1000000)
+		{// update seconds
+			timeUntil.tv_sec += timeUntil.tv_usec / 1000000;
+			timeUntil.tv_usec = timeUntil.tv_usec % 1000000;
+		}
+
+		for (auto& replica : m_mapReplicaPortSocket)
+		{
+			sendData(replica.second, {REPLCONF, "getack", "wait"});
+			auto ackResponse{SocketReader(replica.second).ReadArray()};
+
+			if (ackResponse.size() == 3 && std::stoi(ackResponse.back()) == std::stoi(m_mapConfiguration["waitcmd_offset"]))
+			{
+				std::cout << "[Replica: " << replica.first << "] is up to date. Offset: " << std::stoi(ackResponse.back()) << std::endl;
+				++replicasMetThreshold;
+
+				if (replicasMetThreshold == replicaThreshold)
+				{
+					std::cout << "Replica threshold met -> " << replicasMetThreshold << std::endl;
+					break;
+				}
+			}
+			else
+			{
+				std::cout << "[Replica: " << replica.first << "] did not respond or offset not up to date." << std::endl;
+			}
+
+			// Check time threshold
+			timeval t;
+			gettimeofday(&t, nullptr);
+
+			if (t.tv_sec >= timeUntil.tv_sec || t.tv_usec >= timeUntil.tv_usec)
+			{
+				std::cout << "Timed out!" << std::endl;
+				break;
+			}
+		}
+
+		return RESPEncoder::encodeInteger(replicasMetThreshold);
+	}
 
 	return "$-1\r\n"; // null bulk string
 }

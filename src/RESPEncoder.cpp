@@ -21,6 +21,15 @@ const std::string RESPEncoder::encodeSimpleString(const std::string& str)
 	return result;
 }
 
+const std::string RESPEncoder::encodeInteger(const int integer)
+{
+	std::string result{":"};
+	result.append(std::to_string(integer));
+	result.append("\r\n");
+
+	return result;
+}
+
 const std::string RESPEncoder::encodeArray(const std::vector<std::string>& arr)
 {
 	std::string result{"*"};

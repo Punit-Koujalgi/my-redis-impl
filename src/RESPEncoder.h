@@ -13,6 +13,7 @@ public:
 
 	static const std::string encodeString(const std::string& str);
 	static const std::string encodeSimpleString(const std::string& str);
+	static const std::string encodeInteger(const int integer);
 	static const std::string encodeArray(const std::vector<std::string>& arr);
 };
 
