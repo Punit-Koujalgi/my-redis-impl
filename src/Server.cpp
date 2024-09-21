@@ -349,7 +349,7 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 		{
 			try
 			{
-				std::cout << "Sending data to replica: " << replica.first << std::endl;
+				std::cout << "Checking replica: " << replica.first << std::endl;
 				// sendData(replica.second, {REPLCONF, "getack", "wait"});
 				sendData(replica.second, {"REPLCONF", "GETACK", "*"});
 				auto ackResponse{SocketReader(replica.second).ReadArray()};
@@ -496,7 +496,7 @@ void Server::sendData(const int fd, const std::vector<std::string>& vec)
 	std::string pingReq = RESPEncoder::encodeArray(vec);
 
 	if (write(fd, pingReq.c_str(), pingReq.length()) < 0)
-		throw std::runtime_error("Failed to send ping request to master");
+		throw std::runtime_error("Failed to send data to master");
 
 	std::cout << "Sent data" << std::endl;
 }
