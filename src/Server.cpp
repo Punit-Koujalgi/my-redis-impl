@@ -375,7 +375,7 @@ void Server::initializeSlave()
 	// Store Master Information in Configuration
 	m_mapConfiguration["masterIP"] = masterIP;
 	m_mapConfiguration["masterPort"] = port;
-	m_mapConfiguration["masterOffset"] = result.substr(result.find_last_of(' ') + 1, 1);
+	m_mapConfiguration["master_repl_offset"] = result.substr(result.find_last_of(' ') + 1, 1);
 
 	std::cout << "Threeway handshake complete" << std::endl;
 
