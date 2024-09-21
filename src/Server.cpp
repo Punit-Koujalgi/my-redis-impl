@@ -196,7 +196,10 @@ int Server::HandleConnection(const int clientFd)
 		PropogateCommandToReplicas(RESPEncoder::encodeArray(commandArgs));
 
 	if (status == "slave")
-		m_mapConfiguration["master_repl_offset"] += RESPEncoder::encodeArray(commandArgs).length();
+	{
+		m_mapConfiguration["master_repl_offset"] = std::to_string(std::stoi(m_mapConfiguration["master_repl_offset"])
+			+ RESPEncoder::encodeArray(commandArgs).length()); // Keep updating length of processed commands
+	}
 
 	return 0;
 }
