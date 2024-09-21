@@ -287,7 +287,7 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 		if (ptrArray->size() == 3 && ptrArray->at(1) == "listening-port")
 		{
 			m_mapReplicaPortSocket[ptrArray->at(2)] = clientFd;
-			std::cout << "Got Replica connection [port: " << ptrArray->at(1) << "]" << std::endl;
+			std::cout << "Got Replica connection [port: " << ptrArray->at(2) << "]" << std::endl;
 		}
 
 		if (ptrArray->size() == 3 && toLower(ptrArray->at(1)) == "getack")
@@ -347,8 +347,8 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 
 		for (auto& replica : m_mapReplicaPortSocket)
 		{
-			try
-			{
+			// try
+			// {
 				std::cout << "Sending data to replica: " << replica.first << std::endl;
 				sendData(replica.second, {REPLCONF, "getack", "wait"});
 				auto ackResponse{SocketReader(replica.second).ReadArray()};
@@ -366,12 +366,12 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 				}
 				else
 					throw std::runtime_error("Not up to date");
-			}
-			catch (const std::exception& e)
-			{
-				std::cout << "[Replica: " << replica.first
-					<< "] did not respond or offset not up to date. Error: " << e.what() << std::endl;
-			}
+			// }
+			// catch (const std::exception& e)
+			// {
+			// 	std::cout << "[Replica: " << replica.first
+			// 		<< "] did not respond or offset not up to date. Error: " << e.what() << std::endl;
+			// }
 
 			// Check time threshold
 			timeval t;
