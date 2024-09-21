@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <vector>
+#include <map>
 
 #include "KeyValueStore.h"
 
@@ -39,7 +40,7 @@ private: /* variables */
 
 	KeyValueStore m_kvStore;
 	std::unordered_map<std::string, std::string> m_mapConfiguration;
-	std::unordered_map<std::string, int> m_mapReplicaPortSocket;
+	std::map<std::string, int> m_mapReplicaPortSocket;
 
 	int m_dServerFd{-1};
 	int m_dMasterConnSocket{-1};

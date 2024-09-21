@@ -351,7 +351,7 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 			{
 				std::cout << "Sending data to replica: " << replica.first << std::endl;
 				// sendData(replica.second, {REPLCONF, "getack", "wait"});
-				sendData(replica.second, {REPLCONF, "GETACK", "*"});
+				sendData(replica.second, {"REPLCONF", "GETACK", "*"});
 				auto ackResponse{SocketReader(replica.second).ReadArray()};
 
 				// if (ackResponse.size() == 3 && std::stoi(ackResponse.back()) == std::stoi(m_mapConfiguration["waitcmd_offset"]))
