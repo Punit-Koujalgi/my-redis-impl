@@ -110,6 +110,7 @@ void Server::runEventLoop()
 	if (getReplicationRole() == "slave")
 	{
 		/* Add master socket to current sockets to master can send commands */
+		FD_SET(m_dMasterConnSocket, &currentSockets);
 	}
 
 	while (true)
