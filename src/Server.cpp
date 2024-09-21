@@ -413,6 +413,9 @@ std::string Server::recvData(const int fd)
 
 	result.append(recvline);
 
+	if (result.ends_with("\r\n"))
+		result = result.substr(0, result.length() - 2);
+
 	std::cout << "Received data: " << result << std::endl;
 	return result;
 }
