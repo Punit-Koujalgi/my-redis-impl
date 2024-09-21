@@ -360,11 +360,11 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 					std::cout << "[Replica: " << replica.first << "] is up to date. Offset: " << std::stoi(ackResponse.back()) << std::endl;
 					++replicasMetThreshold;
 
-					if (replicasMetThreshold == replicaThreshold)
-					{
-						std::cout << "Replica threshold met -> " << replicasMetThreshold << std::endl;
-						break;
-					}
+					// if (replicasMetThreshold == replicaThreshold)
+					// {
+					// 	std::cout << "Replica threshold met -> " << replicasMetThreshold << std::endl;
+					// 	break;
+					// }
 				}
 				else
 					throw std::runtime_error("Not up to date");
