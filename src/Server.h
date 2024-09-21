@@ -25,7 +25,7 @@ private:
 	int HandleConnection(const int clientFd); /* returns bytes read bcoz if 0 then connection must be closed */
 
 	
-	std::string HandleCommand(std::unique_ptr<std::vector<std::string>> ptrArray);
+	std::string HandleCommand(std::unique_ptr<std::vector<std::string>> ptrArray, const int clientFd /* Replication purposes */);
 	std::string getReplicationRole();
 	void initializeSlave();
 
@@ -36,8 +36,10 @@ private: /* variables */
 
 	KeyValueStore m_kvStore;
 	std::unordered_map<std::string, std::string> m_mapConfiguration;
+	std::unordered_map<std::string, int> m_mapReplicaPortSocket;
 
 	int m_dServerFd{-1};
+	int m_dMasterConnSocket{-1};
 	int m_dConnBacklog{10};
 
 };

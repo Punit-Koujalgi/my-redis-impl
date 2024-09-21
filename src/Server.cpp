@@ -107,6 +107,11 @@ void Server::runEventLoop()
 	FD_ZERO(&currentSockets);
 	FD_SET(m_dServerFd, &currentSockets);
 
+	if (getReplicationRole() == "slave")
+	{
+		/* Add master socket to current sockets to master can send commands */
+	}
+
 	while (true)
 	{
 		readySockets = currentSockets;
@@ -175,7 +180,7 @@ int Server::HandleConnection(const int clientFd)
 		std::cout << "Got query [" << buffer << "]. Decoding..." << std::endl;
 
 		auto commandArgs(RESPDecoder::decodeArray(std::move(buffer)));
-		auto result{HandleCommand(std::move(commandArgs))};
+		auto result{HandleCommand(std::move(commandArgs), clientFd)};
 
 		//std::cout << "Sending response...[" << result << "]\n";
 		std::cout << "Sending response..." << std::endl;
@@ -186,7 +191,7 @@ int Server::HandleConnection(const int clientFd)
 	// We can also use feof() approach to read multiple lines of data
 }
 
-std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrArray)
+std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrArray, const int clientFd /* Replication purposes */)
 {
 	ptrArray->at(0).assign(toLower(ptrArray->at(0)));
 	
@@ -222,7 +227,6 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 		if (toLower(ptrArray->at(1)) == "get" &&
 				m_mapConfiguration.find(ptrArray->at(2)) != m_mapConfiguration.end())
 		{
-
 			return RESPEncoder::encodeArray({ptrArray->at(2), m_mapConfiguration[ptrArray->at(2)]});
 		}
 	}
@@ -256,6 +260,12 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 	}
 	else if (ptrArray->at(0) == REPLCONF)
 	{
+		if (ptrArray->at(1) == "listening-port")
+		{
+			m_mapReplicaPortSocket[ptrArray->at(1)] = clientFd;
+			std::cout << "Got Replica connection [port: " << ptrArray->at(1) << "]" << std::endl;
+		}
+
 		return "+OK\r\n";
 	}
 	else if (ptrArray->at(0) == PSYNC)
@@ -264,7 +274,20 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 				m_mapConfiguration["master_replid"] + " " +
 				m_mapConfiguration["master_repl_offset"] + "\r\n";
 
-		return RESPEncoder::encodeSimpleString(result);
+		result = RESPEncoder::encodeSimpleString(result);
+
+		std::cout << "Sending response..." << std::endl;
+		send(clientFd, result.c_str(), result.length(), 0);
+
+		/* Send initial empty rdb file */
+		const std::string empty_rdb = "\x52\x45\x44\x49\x53\x30\x30\x31\x31\xfa\x09\
+\x72\x65\x64\x69\x73\x2d\x76\x65\x72\x05\x37\x2e\x32\x2e\x30\xfa\x0a\x72\x65\
+\x64\x69\x73\x2d\x62\x69\x74\x73\xc0\x40\xfa\x05\x63\x74\x69\x6d\x65\xc2\x6d\
+\x08\xbc\x65\xfa\x08\x75\x73\x65\x64\x2d\x6d\x65\x6d\xc2\xb0\xc4\x10\x00\xfa\
+\x08\x61\x6f\x66\x2d\x62\x61\x73\x65\xc0\x00\xff\xf0\x6e\x3b\xfe\xc0\xff\x5a\xa2";
+
+		std::cout << "Sending empty rdb file..." << std::endl;
+		send(clientFd, empty_rdb.c_str(), empty_rdb.length(), 0);
 	}
 
 
@@ -289,8 +312,8 @@ void Server::initializeSlave()
 {
 	/* Performs three way handshake with master */
 
-	int masterConnSocket = socket(AF_INET, SOCK_STREAM, 0);
-	if (masterConnSocket < 0)
+	m_dMasterConnSocket = socket(AF_INET, SOCK_STREAM, 0);
+	if (m_dMasterConnSocket < 0)
 		throw std::runtime_error("Failed to create master conn socket");
 
 	std::string masterStr = m_mapConfiguration["replicaof"]; // "<master IP> <master port>"
@@ -306,38 +329,67 @@ void Server::initializeSlave()
 	if (inet_pton(AF_INET, masterIP.c_str(), &servaddr.sin_addr) <= 0)
 		throw std::runtime_error("Failed to convert IP to network format");
 	
-	if (connect(masterConnSocket, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0)
+	if (connect(m_dMasterConnSocket, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0)
 		throw std::runtime_error("Failed to connect to master");
 
 	// Connected!! Threeway handshake underway
 	// Step 1:
-	sendData(masterConnSocket, {PING});
-	auto result = recvData(masterConnSocket);
+	sendData(m_dMasterConnSocket, {PING});
+	auto result = recvData(m_dMasterConnSocket);
 	if (toLower(*RESPDecoder::decodeString(result)) != toLower("pong"))
 		throw std::runtime_error("One step of threeway handshare failed");
 
 	// Step 2a:
 	std::vector<std::string> input{"REPLCONF", "listening-port", m_mapConfiguration["port"]};
-	sendData(masterConnSocket, input);
-	result = recvData(masterConnSocket);
+	sendData(m_dMasterConnSocket, input);
+	result = recvData(m_dMasterConnSocket);
 	if (toLower(*RESPDecoder::decodeString(result)) != toLower("ok"))
 		throw std::runtime_error("Second step of threeway handshare failed");
 
 	// Step 2b:
 	std::vector<std::string> input2{"REPLCONF", "capa", "psync2"};
-	sendData(masterConnSocket, input2);
-	result = recvData(masterConnSocket);
+	sendData(m_dMasterConnSocket, input2);
+	result = recvData(m_dMasterConnSocket);
 	if (toLower(*RESPDecoder::decodeString(result)) != toLower("ok"))
 		throw std::runtime_error("Second step of threeway handshare failed");
 
 	// Step 3:
 	std::vector<std::string> input3{"PSYNC", "?", "-1"};
-	sendData(masterConnSocket, input3);
-	result = recvData(masterConnSocket);
-	// if (toLower(*RESPDecoder::decodeString(result)) != toLower("ok"))
-	// 	throw std::runtime_error("Second step of threeway handshare failed");
+	sendData(m_dMasterConnSocket, input3);
+	result = *RESPDecoder::decodeString(recvData(m_dMasterConnSocket));
+
+	// Store Master Information in Configuration
+	m_mapConfiguration["masterIP"] = masterIP;
+	m_mapConfiguration["masterPort"] = port;
+	m_mapConfiguration["masterOffset"] = result.substr(result.find_last_of(' ') + 1, 1);
 
 	std::cout << "Threeway handshake complete" << std::endl;
+
+	if (m_mapConfiguration["masterOffset"] == "0")
+	{
+		// Master should be sending empty rdb file now
+		result = recvData(m_dMasterConnSocket);
+		createFileWithData("/tmp/emptyDb.rdb", result); /* Even if data is empty we can still info like version, metadata etc */
+		try
+		{
+			m_kvStore.initializeKeyValues("/tmp", "emptyDb.rdb");
+			std::cout << "Initialized from Master's rdb file" << std::endl;
+		}
+		catch(const std::exception& e)
+		{
+			if (std::string_view(e.what()).find("database start") != std::string::npos)
+			{
+				// Expected no database exception bcoz we are initializing from empty rdb file
+				std::cout << "Ignore exception: " << e.what() << std::endl;
+			}
+			else
+				throw; // re-throw any other exception
+		}
+	}
+	else
+	{
+		throw std::runtime_error("Initializing from full master data state not supported yet");
+	}
 }
 
 void Server::sendData(const int fd, const std::vector<std::string>& vec)

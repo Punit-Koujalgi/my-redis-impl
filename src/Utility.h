@@ -1,6 +1,8 @@
 
 #include <string>
 #include <algorithm>
+#include <exception>
+#include <fstream>
 
 inline const std::string toLower(const std::string& str)
 {
@@ -9,5 +11,12 @@ inline const std::string toLower(const std::string& str)
 
 	return res;
 } 
+
+inline const void createFileWithData(const std::string& file, const std::string& data)
+{
+	std::ofstream outfile (file);
+	outfile << data;
+	outfile.close();
+}
 
 
