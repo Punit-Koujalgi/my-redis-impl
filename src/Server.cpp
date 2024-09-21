@@ -287,7 +287,7 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 \x08\x61\x6f\x66\x2d\x62\x61\x73\x65\xc0\x00\xff\xf0\x6e\x3b\xfe\xc0\xff\x5a\xa2";
 
 		std::cout << "Sending response..." << std::endl;
-		send(clientFd, std::string("$" + std::to_string(empty_rdb.length()) + "\r\n", result.length()).c_str(), 5, 0);
+		send(clientFd, std::string("$" + std::to_string(empty_rdb.length()) + "\r\n").c_str(), 5, 0);
 
 		//return "$" + std::to_string(empty_rdb.length()) + "\r\n" + empty_rdb;	
 		return empty_rdb;
