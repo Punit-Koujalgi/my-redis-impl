@@ -347,13 +347,15 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 
 		for (auto& replica : m_mapReplicaPortSocket)
 		{
-			// try
-			// {
+			try
+			{
 				std::cout << "Sending data to replica: " << replica.first << std::endl;
-				sendData(replica.second, {REPLCONF, "getack", "wait"});
+				// sendData(replica.second, {REPLCONF, "getack", "wait"});
+				sendData(replica.second, {REPLCONF, "GETACK", "*"});
 				auto ackResponse{SocketReader(replica.second).ReadArray()};
 
-				if (ackResponse.size() == 3 && std::stoi(ackResponse.back()) == std::stoi(m_mapConfiguration["waitcmd_offset"]))
+				// if (ackResponse.size() == 3 && std::stoi(ackResponse.back()) == std::stoi(m_mapConfiguration["waitcmd_offset"]))
+				if (ackResponse.size() == 3)
 				{
 					std::cout << "[Replica: " << replica.first << "] is up to date. Offset: " << std::stoi(ackResponse.back()) << std::endl;
 					++replicasMetThreshold;
@@ -366,12 +368,12 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 				}
 				else
 					throw std::runtime_error("Not up to date");
-			// }
-			// catch (const std::exception& e)
-			// {
-			// 	std::cout << "[Replica: " << replica.first
-			// 		<< "] did not respond or offset not up to date. Error: " << e.what() << std::endl;
-			// }
+			}
+			catch (const std::exception& e)
+			{
+				std::cout << "[Replica: " << replica.first
+					<< "] did not respond or offset not up to date. Error: " << e.what() << std::endl;
+			}
 
 			// Check time threshold
 			timeval t;
@@ -495,6 +497,8 @@ void Server::sendData(const int fd, const std::vector<std::string>& vec)
 
 	if (write(fd, pingReq.c_str(), pingReq.length()) < 0)
 		throw std::runtime_error("Failed to send ping request to master");
+
+	std::cout << "Sent data" << std::endl;
 }
 
 std::string Server::recvData(const int fd)
