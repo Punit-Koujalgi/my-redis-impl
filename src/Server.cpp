@@ -195,6 +195,9 @@ int Server::HandleConnection(const int clientFd)
 	if (status == "master" && shouldPropogateCommand(currentCmd))
 		PropogateCommandToReplicas(RESPEncoder::encodeArray(commandArgs));
 
+	if (status == "slave")
+		m_mapConfiguration["master_repl_offset"] += RESPEncoder::encodeArray(commandArgs).length();
+
 	return 0;
 }
 
@@ -271,6 +274,11 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 		{
 			m_mapReplicaPortSocket[ptrArray->at(2)] = clientFd;
 			std::cout << "Got Replica connection [port: " << ptrArray->at(1) << "]" << std::endl;
+		}
+
+		if (ptrArray->size() == 3 && toLower(ptrArray->at(1)) == "getack")
+		{
+			return RESPEncoder::encodeArray({REPLCONF, "ack", m_mapConfiguration["master_repl_offset"]});
 		}
 
 		return "+OK\r\n";
