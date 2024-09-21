@@ -376,14 +376,14 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 			}
 
 			// Check time threshold
-			timeval t;
-			gettimeofday(&t, nullptr);
+			// timeval t;
+			// gettimeofday(&t, nullptr);
 
-			if (t.tv_sec >= timeUntil.tv_sec || t.tv_usec >= timeUntil.tv_usec)
-			{
-				std::cout << "Timed out!" << std::endl;
-				break;
-			}
+			// if (t.tv_sec >= timeUntil.tv_sec || t.tv_usec >= timeUntil.tv_usec)
+			// {
+			// 	std::cout << "Timed out!" << std::endl;
+			// 	break;
+			// }
 		}
 
 		return RESPEncoder::encodeInteger(replicasMetThreshold);
