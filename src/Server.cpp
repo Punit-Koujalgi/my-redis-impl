@@ -379,7 +379,7 @@ void Server::initializeSlave()
 
 	std::cout << "Threeway handshake complete" << std::endl;
 
-	if (m_mapConfiguration["masterOffset"] == "0")
+	if (m_mapConfiguration["master_repl_offset"] == "0")
 	{
 		// Master should be sending empty rdb file now
 		result = SocketReader(m_dMasterConnSocket).readRDBFile();
