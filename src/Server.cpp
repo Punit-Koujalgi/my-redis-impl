@@ -322,6 +322,12 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 	}
 	else if (ptrArray->at(0) == WAIT)
 	{
+		if (m_mapConfiguration["waitcmd_offset"] == "0")
+		{
+			std::cout << "No write commands yet" << std::endl;
+			return RESPEncoder::encodeInteger(m_mapReplicaPortSocket.size());
+		}
+
 		int replicaThreshold = std::stoi(ptrArray->at(1));
 		int timeThreshold = std::stoi(ptrArray->at(2));
 
