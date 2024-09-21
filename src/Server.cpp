@@ -278,7 +278,7 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 
 		if (ptrArray->size() == 3 && toLower(ptrArray->at(1)) == "getack")
 		{
-			return RESPEncoder::encodeArray({REPLCONF, "ack", m_mapConfiguration["master_repl_offset"]});
+			return RESPEncoder::encodeArray({REPLCONF, "ACK", m_mapConfiguration["master_repl_offset"]});
 		}
 
 		return "+OK\r\n";
