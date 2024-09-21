@@ -497,8 +497,6 @@ void Server::sendData(const int fd, const std::vector<std::string>& vec)
 
 	if (write(fd, pingReq.c_str(), pingReq.length()) < 0)
 		throw std::runtime_error("Failed to send data to master");
-
-	std::cout << "Sent data" << std::endl;
 }
 
 std::string Server::recvData(const int fd)
