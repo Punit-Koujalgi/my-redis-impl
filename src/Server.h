@@ -28,6 +28,9 @@ private:
 	std::string HandleCommand(std::unique_ptr<std::vector<std::string>> ptrArray, const int clientFd /* Replication purposes */);
 	std::string getReplicationRole();
 	void initializeSlave();
+	void PropogateCommandToReplicas(const std::string& userCmd);
+	bool shouldPropogateCommand(const std::string& userCmd);
+	bool shouldRespondBack(const std::string& status, const int fd, std::vector<std::string>& args);
 
 	void sendData(const int fd, const std::vector<std::string>& vec);
 	std::string recvData(const int fd); 

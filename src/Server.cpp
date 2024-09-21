@@ -180,12 +180,24 @@ int Server::HandleConnection(const int clientFd)
 	{
 		std::cout << "Got query [" << buffer << "]. Decoding..." << std::endl;
 
-		auto commandArgs(RESPDecoder::decodeArray(std::move(buffer)));
+		std::string status = getReplicationRole();
+
+		auto commandArgs(RESPDecoder::decodeArray(buffer));
+		auto currentCmd{toLower(commandArgs->at(0))};
+		bool bShouldRespondBack = shouldRespondBack(status, clientFd, *commandArgs);
+
+		/* Process the command */
 		auto result{HandleCommand(std::move(commandArgs), clientFd)};
 
-		//std::cout << "Sending response...[" << result << "]\n";
-		std::cout << "Sending response..." << result << std::endl;
-		send(clientFd, result.c_str(), result.length(), 0);
+		if (bShouldRespondBack)
+		{
+			//std::cout << "Sending response...[" << result << "]\n";
+			std::cout << "Sending response..." << result << std::endl;
+			send(clientFd, result.c_str(), result.length(), 0);
+		}
+
+		if (status == "master" && shouldPropogateCommand(currentCmd))
+			PropogateCommandToReplicas(buffer);
 	}
 
 	return bytesRead;
@@ -261,9 +273,9 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 	}
 	else if (ptrArray->at(0) == REPLCONF)
 	{
-		if (ptrArray->at(1) == "listening-port")
+		if (ptrArray->size() == 3 && ptrArray->at(1) == "listening-port")
 		{
-			m_mapReplicaPortSocket[ptrArray->at(1)] = clientFd;
+			m_mapReplicaPortSocket[ptrArray->at(2)] = clientFd;
 			std::cout << "Got Replica connection [port: " << ptrArray->at(1) << "]" << std::endl;
 		}
 
@@ -381,7 +393,7 @@ void Server::initializeSlave()
 			if (std::string_view(e.what()).find("database start") != std::string::npos)
 			{
 				// Expected no database exception bcoz we are initializing from empty rdb file
-				std::cout << "Ignore exception: " << e.what() << std::endl;
+				std::cout << "Ignore expected exception: " << "database start not found" << std::endl;
 			}
 			else
 				throw; // re-throw any other exception
@@ -417,6 +429,39 @@ std::string Server::recvData(const int fd)
 
 	std::cout << "Received data: " << result << std::endl;
 	return result;
+}
+
+bool Server::shouldPropogateCommand(const std::string& userCmd)
+{
+	if (userCmd == SET)
+	{
+		return true;
+	}
+	return false;
+}
+
+void Server::PropogateCommandToReplicas(const std::string& userCmd)
+{
+	for (auto& replica : m_mapReplicaPortSocket)
+	{
+		if (write(replica.second, userCmd.c_str(), userCmd.length()) < 0)
+			throw std::runtime_error("Failed to send ping request to replica");
+
+		std::cout << "Cmd Propogated to [replica: " << replica.first << "]\n";
+	}
+}
+
+bool Server::shouldRespondBack(const std::string& status, const int fd, std::vector<std::string>& args)
+{
+	if (status == "master"
+		|| (status == "slave" && fd != m_dMasterConnSocket) // should always respond to master, below checks only for reponding to master
+		|| (status == "slave" && args.size() > 1 && toLower(args[0]) == REPLCONF && toLower(args[1]) == "getback")
+		|| (status == "slave" && args.size() > 1 && toLower(args[0]) == COMMAND && toLower(args[1]) == toLower("docs"))) // sent by redis.cli after connecting
+	{
+		return true;
+	}
+
+	return false;
 }
 
 
