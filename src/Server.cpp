@@ -460,7 +460,7 @@ bool Server::shouldRespondBack(const std::string& status, const int fd, std::vec
 {
 	if (status == "master"
 		|| (status == "slave" && fd != m_dMasterConnSocket) // should always respond to master, below checks only for reponding to master
-		|| (status == "slave" && args.size() > 1 && toLower(args[0]) == REPLCONF && toLower(args[1]) == "getback")
+		|| (status == "slave" && args.size() > 1 && toLower(args[0]) == REPLCONF && toLower(args[1]) == "getack")
 		|| (status == "slave" && args.size() > 1 && toLower(args[0]) == COMMAND && toLower(args[1]) == toLower("docs"))) // sent by redis.cli after connecting
 	{
 		return true;
