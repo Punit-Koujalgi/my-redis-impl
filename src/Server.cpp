@@ -272,7 +272,7 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 	{
 		std::string result = "FULLRESYNC " +
 				m_mapConfiguration["master_replid"] + " " +
-				m_mapConfiguration["master_repl_offset"] + "\r\n";
+				m_mapConfiguration["master_repl_offset"];
 
 		result = RESPEncoder::encodeSimpleString(result);
 
@@ -286,13 +286,7 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 \x08\xbc\x65\xfa\x08\x75\x73\x65\x64\x2d\x6d\x65\x6d\xc2\xb0\xc4\x10\x00\xfa\
 \x08\x61\x6f\x66\x2d\x62\x61\x73\x65\xc0\x00\xff\xf0\x6e\x3b\xfe\xc0\xff\x5a\xa2";
 
-		std::string lengthStr = "$2\r\n66";
-		send(clientFd, lengthStr.c_str(), lengthStr.length(), 0);
-
-		std::string tosend = "$" + std::to_string(empty_rdb.length()) + "\r\n" + empty_rdb;
-		// std::cout << "Sending response..." << std::endl;
-		// send(clientFd, std::to_string(tosend.length()).c_str(), 2, 0);
-		return tosend;
+		return "$" + std::to_string(empty_rdb.length()) + "\r\n" + empty_rdb;
 	}
 
 
