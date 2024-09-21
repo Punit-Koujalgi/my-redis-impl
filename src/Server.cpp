@@ -330,9 +330,80 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 
 		int replicaThreshold = std::stoi(ptrArray->at(1));
 		int timeThreshold = std::stoi(ptrArray->at(2));
+		int replicasMetThreshold = 0;
+
+		std::cout << "Got thresholds: " << replicaThreshold << " " << timeThreshold << std::endl;
+		// Trying FD approach
+		fd_set replSockets, readySockets;
+		FD_ZERO(&replSockets);
+
+		for (auto& replica : m_mapReplicaPortSocket)
+		{
+			FD_SET(replica.second, &replSockets);
+
+			std::cout << "Sending req to replica: " << replica.first << " socket: " << replica.second << std::endl;
+			// sendData(replica.second, {REPLCONF, "getack", "wait"});
+			sendData(replica.second, {"REPLCONF", "GETACK", "*"});
+		}
 
 		timeval timeUntil;
-		int replicasMetThreshold = 0;
+		gettimeofday(&timeUntil, nullptr);
+
+		// set timeout
+		timeUntil.tv_usec += timeThreshold * 1000;
+		if (timeUntil.tv_usec > 1000000)
+		{// update seconds
+			timeUntil.tv_sec += timeUntil.tv_usec / 1000000;
+			timeUntil.tv_usec = timeUntil.tv_usec % 1000000;
+		}
+
+		while (true)
+		{
+			timeval timeout;
+			timeout.tv_usec = 0;
+			timeout.tv_sec = 0; // polling; not right need to change
+
+			readySockets = replSockets;
+
+			if (select(FD_SETSIZE, &readySockets, nullptr, nullptr, &timeout) < 0)
+			{
+				std::cout << "select() error or timed out";
+				break;
+			}
+
+			for (int currSock{0}; currSock < FD_SETSIZE; ++currSock)
+			{
+				if (FD_ISSET(currSock, &readySockets))
+				{
+					try
+					{
+						auto ackResponse{SocketReader(currSock).ReadArray()};
+						if (ackResponse.size() == 3)
+						{
+							std::cout << "[Replica: " << currSock << "] is up to date. Offset: " << std::stoi(ackResponse.back()) << std::endl;
+							++replicasMetThreshold;
+						}
+					}
+					catch(const std::exception& e)
+					{
+						FD_CLR(currSock, &replSockets);
+					}
+				}
+			}
+
+			//Check time threshold
+			timeval t;
+			gettimeofday(&t, nullptr);
+
+			if (t.tv_sec > timeUntil.tv_sec || (t.tv_sec == timeUntil.tv_sec && t.tv_usec > timeUntil.tv_usec))
+			{
+				std::cout << "Timed out!" << std::endl;
+				break;
+			}
+		}
+
+		/*
+		timeval timeUntil;
 		gettimeofday(&timeUntil, nullptr);
 
 		// set timeout
@@ -385,6 +456,7 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 			// 	break;
 			// }
 		}
+		*/
 
 		return RESPEncoder::encodeInteger(replicasMetThreshold);
 	}
