@@ -339,23 +339,30 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 
 		for (auto& replica : m_mapReplicaPortSocket)
 		{
-			sendData(replica.second, {REPLCONF, "getack", "wait"});
-			auto ackResponse{SocketReader(replica.second).ReadArray()};
-
-			if (ackResponse.size() == 3 && std::stoi(ackResponse.back()) == std::stoi(m_mapConfiguration["waitcmd_offset"]))
+			try
 			{
-				std::cout << "[Replica: " << replica.first << "] is up to date. Offset: " << std::stoi(ackResponse.back()) << std::endl;
-				++replicasMetThreshold;
+				sendData(replica.second, {REPLCONF, "getack", "wait"});
+				auto ackResponse{SocketReader(replica.second).ReadArray()};
 
-				if (replicasMetThreshold == replicaThreshold)
+				if (ackResponse.size() == 3 && std::stoi(ackResponse.back()) == std::stoi(m_mapConfiguration["waitcmd_offset"]))
 				{
-					std::cout << "Replica threshold met -> " << replicasMetThreshold << std::endl;
-					break;
+					std::cout << "[Replica: " << replica.first << "] is up to date. Offset: " << std::stoi(ackResponse.back()) << std::endl;
+					++replicasMetThreshold;
+
+					if (replicasMetThreshold == replicaThreshold)
+					{
+						std::cout << "Replica threshold met -> " << replicasMetThreshold << std::endl;
+						break;
+					}
 				}
+				else
+					throw std::runtime_error("Not up to date");
 			}
-			else
+
+			catch (const std::exception& e)
 			{
-				std::cout << "[Replica: " << replica.first << "] did not respond or offset not up to date." << std::endl;
+				std::cout << "[Replica: " << replica.first
+					<< "] did not respond or offset not up to date. Error: " << e.what() << std::endl;
 			}
 
 			// Check time threshold
