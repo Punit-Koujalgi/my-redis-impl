@@ -135,7 +135,7 @@ void Server::runEventLoop()
 				{
 					// One of the client connections has msg
 					int bytesRead = HandleConnection(currSock);
-					if(bytesRead == 0)
+					if(bytesRead == -1)
 						FD_CLR(currSock, &currentSockets);
 				}
 			}
@@ -166,43 +166,36 @@ int Server::HandleConnection(const int clientFd)
 {
 	// This function should take long => cardinal rule of event loop
 
-	char buffer[MAXLINE]{};
-	auto bytesRead = read(clientFd, buffer, MAXLINE);
-
-	if ( bytesRead < 0)
-	{
-		throw std::runtime_error("Failed to read data");
-	}
-	else if (bytesRead == 0)
+	auto commandArgs{SocketReader(clientFd).ReadArray()};
+	if (commandArgs.empty())
 	{
 		std::cout << "No data read" << std::endl;
+		return -1;
 	}
-	else
+
+	std::cout << "Got query: ";
+	for (auto& arg : commandArgs) {std::cout << arg << ' ';}
+	std::cout << std::endl; 
+
+	std::string status = getReplicationRole();
+
+	auto currentCmd{toLower(commandArgs[0])};
+	bool bShouldRespondBack = shouldRespondBack(status, clientFd, commandArgs);
+
+	/* Process the command */
+	auto result{HandleCommand(std::make_unique<std::vector<std::string>>(commandArgs), clientFd)};
+
+	if (bShouldRespondBack)
 	{
-		std::cout << "Got query [" << buffer << "]. Decoding..." << std::endl;
-
-		std::string status = getReplicationRole();
-
-		auto commandArgs(RESPDecoder::decodeArray(buffer));
-		auto currentCmd{toLower(commandArgs->at(0))};
-		bool bShouldRespondBack = shouldRespondBack(status, clientFd, *commandArgs);
-
-		/* Process the command */
-		auto result{HandleCommand(std::move(commandArgs), clientFd)};
-
-		if (bShouldRespondBack)
-		{
-			//std::cout << "Sending response...[" << result << "]\n";
-			std::cout << "Sending response..." << result << std::endl;
-			send(clientFd, result.c_str(), result.length(), 0);
-		}
-
-		if (status == "master" && shouldPropogateCommand(currentCmd))
-			PropogateCommandToReplicas(buffer);
+		//std::cout << "Sending response...[" << result << "]\n";
+		std::cout << "Sending response..." << result << std::endl;
+		send(clientFd, result.c_str(), result.length(), 0);
 	}
 
-	return bytesRead;
-	// We can also use feof() approach to read multiple lines of data
+	if (status == "master" && shouldPropogateCommand(currentCmd))
+		PropogateCommandToReplicas(RESPEncoder::encodeArray(commandArgs));
+
+	return 0;
 }
 
 std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrArray, const int clientFd /* Replication purposes */)
@@ -382,7 +375,6 @@ void Server::initializeSlave()
 	{
 		// Master should be sending empty rdb file now
 		result = SocketReader(m_dMasterConnSocket).readRDBFile();
-		std::cout << result << " " << result.length() << std::endl;
 		result = result.substr(result.find('\n') + 1);
 		createFileWithData("/tmp/emptyDb.rdb", result); /* Even if data is empty we can still info like version, metadata etc */
 		try

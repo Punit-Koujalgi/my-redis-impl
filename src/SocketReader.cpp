@@ -13,7 +13,7 @@ uint8_t SocketReader::readByte()
 	if (n < 0)
 		throw std::runtime_error("read() failed");
 	else if (n == 0)
-		std::cout << "EOF reached" << std::endl;
+		throw std::runtime_error("EOF reached");
  
 	return val;
 };
@@ -25,54 +25,81 @@ void SocketReader::readSlashRN()
 
 std::string SocketReader::readSimpleString()
 {
-	assert(readByte() == '+'); // for +
-	std::string res;
-	char c;
-	while ((c = (char)readByte()) != '\r')
-		res.push_back(c);
-	readByte(); // for \n 
-	return res;
+	try
+	{
+		assert(readByte() == '+'); // for +
+		std::string res;
+		char c;
+		while ((c = (char)readByte()) != '\r')
+			res.push_back(c);
+		readByte(); // for \n 
+		return res;
+	}
+	catch(const std::exception& e)
+	{
+		if (std::string_view(e.what()).find("EOF") == std::string_view::npos)
+			throw; // re-throw if not EOF
+	}
+	return {};
 }
 
 std::string SocketReader::readBulkString()
 {
-	assert(readByte() == '$'); // for $
-	
-	std::string leng;
-	char c;
-	while ((c = readByte()) != '\r')
-		leng.push_back(c);
+	try
+	{
+		assert(readByte() == '$'); // for $
+		
+		std::string leng;
+		char c;
+		while ((c = (char)readByte()) != '\r')
+			leng.push_back(c);
 
-	int length = std::stoi(leng);
-	readByte(); // for \n 
+		int length = std::stoi(leng);
+		readByte(); // for \n 
 
-	std::vector<char> buffer(length);
-	read(m_fd, buffer.data(), length);
-	readSlashRN();
-	return std::string(buffer.data(), length);
+		std::vector<char> buffer(length);
+		read(m_fd, buffer.data(), length);
+		readSlashRN();
+		return std::string(buffer.data(), length);
+	}
+	catch(const std::exception& e)
+	{
+		if (std::string_view(e.what()).find("EOF") == std::string_view::npos)
+			throw; // re-throw if not EOF
+	}
+	return {};
 };
 
 std::vector<std::string> SocketReader::ReadArray()
 {
-	assert(readByte() == '*'); // for *
-	readSlashRN();
-
-	std::vector<std::string> res;
-
-	std::string leng;
-	char c;
-	while ((c = readByte()) != '\r')
-		leng.push_back(c);
-
-	int length = std::stoi(leng);
-	readByte(); // for \n 
-
-	for (int i = 0; i < length; ++i)
+	try
 	{
-		res.push_back(readBulkString());
-	}
+		assert(readByte() == '*'); // for *
 
-	return res;
+		std::vector<std::string> res;
+
+		std::string leng;
+		char c;
+		while ((c = (char)readByte()) != '\r')
+			leng.push_back(c);
+
+		std::cout << leng << std::endl;
+		int length = std::stoi(leng);
+		readByte(); // for \n 
+
+		for (int i = 0; i < length; ++i)
+		{
+			res.push_back(readBulkString());
+		}
+
+		return res;
+	}
+	catch(const std::exception& e)
+	{
+		if (std::string_view(e.what()).find("EOF") == std::string_view::npos)
+			throw; // re-throw if not EOF
+	}
+	return {};
 }
 
 std::string SocketReader::readRDBFile()
