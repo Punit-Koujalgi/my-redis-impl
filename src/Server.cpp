@@ -183,7 +183,7 @@ int Server::HandleConnection(const int clientFd)
 		auto result{HandleCommand(std::move(commandArgs), clientFd)};
 
 		//std::cout << "Sending response...[" << result << "]\n";
-		std::cout << "Sending response..." << std::endl;
+		std::cout << "Sending response..." << result << std::endl;
 		send(clientFd, result.c_str(), result.length(), 0);
 	}
 
