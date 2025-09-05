@@ -168,7 +168,12 @@ std::string Stream::AddEntry(unsigned long entryFirstId, unsigned long entrySeco
         }
     }
 
-    std::cout << "latest Ids:" << m_latestFirstId << "-" << m_latestSecondId << std::endl;
+    // std::cout << "latest Ids:" << m_latestFirstId << "-" << m_latestSecondId << std::endl;
+
+    if (entryFirstId == 0 && entrySecondId == 0)
+    {
+        return RESPEncoder::encodeError("The ID specified in XADD must be greater than 0-0");
+    }
 
     if (entryFirstId < m_latestFirstId ||
         (entryFirstId == m_latestFirstId && entrySecondId <= m_latestSecondId))
