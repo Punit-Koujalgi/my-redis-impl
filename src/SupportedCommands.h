@@ -1,0 +1,22 @@
+#ifndef SUPPORTEDCOMMANDS_H
+#define SUPPORTEDCOMMANDS_H
+
+
+/* Supported commands */
+#define PING "ping"
+#define ECHO "echo"
+#define COMMAND "command"
+#define SET "set"
+#define GET "get"
+#define CONFIG "config"
+#define SAVE "save"
+#define KEYS "keys"
+#define INFO "info"
+#define REPLCONF "replconf"
+#define PSYNC "psync"
+#define WAIT "wait"
+#define TYPE "type"
+#define XADD "xadd"
+#define XRANGE "xrange"
+
+#endif // SUPPORTEDCOMMANDS_H

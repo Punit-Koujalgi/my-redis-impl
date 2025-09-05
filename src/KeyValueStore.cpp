@@ -8,11 +8,10 @@
 #include <sys/time.h>
 #include <cassert>
 
-
 const std::string KeyValueStore::get(const std::string& key)
 {
 	if (m_mapKeyValues.find(key) == m_mapKeyValues.end())
-		return std::string("$-1\r\n"); // null bulk string
+		return NULL_BULK_ENCODED;
 
 	if (m_mapKeyTimeouts.find(key) != m_mapKeyTimeouts.end())
 	{

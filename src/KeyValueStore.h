@@ -18,6 +18,8 @@ typedef struct timeval timeVal;
 
 */
 
+#define NULL_BULK_ENCODED "$-1\r\n"
+
 class KeyValueStore
 {
 

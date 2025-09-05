@@ -30,7 +30,7 @@ const std::string RESPEncoder::encodeInteger(const int integer)
 	return result;
 }
 
-const std::string RESPEncoder::encodeArray(const std::vector<std::string>& arr)
+const std::string RESPEncoder::encodeArray(const std::vector<std::string>& arr, bool dontEncodeItems)
 {
 	std::string result{"*"};
 	result.append(std::to_string(arr.size()));
@@ -38,10 +38,24 @@ const std::string RESPEncoder::encodeArray(const std::vector<std::string>& arr)
 
 	for (auto& str : arr)
 	{
-		result.append(encodeString(str));
+		if (!dontEncodeItems)
+		{
+			result.append(encodeString(str));
+		}
+		else
+		{
+			result.append(str);
+		}
 	}
 
 	return result;
 }
 
+const std::string RESPEncoder::encodeError(const std::string& errMsg)
+{
+	std::string result{"-ERR "};
+	result.append(errMsg);
+	result.append("\r\n");
 
+	return result;
+}

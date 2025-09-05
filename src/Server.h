@@ -9,6 +9,7 @@
 #include <map>
 
 #include "KeyValueStore.h"
+#include "StreamHandler.h"
 
 class Server
 {
@@ -39,6 +40,7 @@ private:
 private: /* variables */
 
 	KeyValueStore m_kvStore;
+	StreamHandler streamHandler;
 	std::unordered_map<std::string, std::string> m_mapConfiguration;
 	std::map<std::string, int> m_mapReplicaPortSocket;
 
@@ -49,3 +51,4 @@ private: /* variables */
 };
 
 #endif
+

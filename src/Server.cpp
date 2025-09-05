@@ -1,10 +1,4 @@
 
-#include "Server.h"
-#include "RESPEncoder.h"
-#include "RESPDecoder.h"
-#include "Utility.h"
-#include "SocketReader.h"
-
 #include <iostream>
 #include <sys/socket.h> // for socket
 #include <arpa/inet.h> 	// for sockaddr_in
@@ -13,19 +7,13 @@
 #include <algorithm>
 #include <sys/time.h>
 
-/* Supported commands */
-#define PING "ping"
-#define ECHO "echo"
-#define COMMAND "command"
-#define SET "set"
-#define GET "get"
-#define CONFIG "config"
-#define SAVE "save"
-#define KEYS "keys"
-#define INFO "info"
-#define REPLCONF "replconf"
-#define PSYNC "psync"
-#define WAIT "wait"
+#include "Server.h"
+#include "RESPEncoder.h"
+#include "RESPDecoder.h"
+#include "Utility.h"
+#include "SocketReader.h"
+#include "SupportedCommands.h"
+#include "StreamHandler.h"
 
 Server::~Server()
 {
@@ -65,8 +53,7 @@ void Server::startServer(int argc, char **argv)
     	throw std::runtime_error("Failed to create server socket");
   	}
   
-  	// Since the tester restarts your program quite often, setting SO_REUSEADDR
-  	// ensures that we don't run into 'Address already in use' errors
+  	// setting SO_REUSEADDR ensures that we don't run into 'Address already in use' errors
   	int reuse = 1;
   	if (setsockopt(m_dServerFd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
     	throw std::runtime_error("setsockopt failed");
@@ -169,7 +156,7 @@ int Server::acceptNewConnection()
 
 int Server::HandleConnection(const int clientFd)
 {
-	// This function should take long => cardinal rule of event loop
+	// This function should not take long => cardinal rule of event loop
 
 	auto commandArgs{SocketReader(clientFd).ReadArray()};
 	if (commandArgs.empty())
@@ -460,8 +447,24 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 
 		return RESPEncoder::encodeInteger(replicasMetThreshold);
 	}
+	else if (ptrArray->at(0) == TYPE)
+	{
+		if (m_kvStore.get(ptrArray->at(1)) != NULL_BULK_ENCODED)
+			return RESPEncoder::encodeSimpleString("string");
+		else
+		{
+			if (streamHandler.IsStreamPresent(ptrArray->at(1)))
+				return RESPEncoder::encodeSimpleString("stream");
+		}
 
-	return "$-1\r\n"; // null bulk string
+		return RESPEncoder::encodeSimpleString("none");
+	}
+	else if (ptrArray->at(0) == XADD || ptrArray->at(0) == XRANGE)
+	{
+		return streamHandler.StreamCommandProcessor(std::move(ptrArray));
+	}
+
+	return NULL_BULK_ENCODED; // null bulk string
 }
 
 std::string Server::getReplicationRole()
@@ -594,7 +597,7 @@ std::string Server::recvData(const int fd)
 
 bool Server::shouldPropogateCommand(const std::string& userCmd)
 {
-	if (userCmd == SET)
+	if (userCmd == SET || userCmd == XADD)
 	{
 		return true;
 	}

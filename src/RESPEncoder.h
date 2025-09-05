@@ -14,7 +14,8 @@ public:
 	static const std::string encodeString(const std::string& str);
 	static const std::string encodeSimpleString(const std::string& str);
 	static const std::string encodeInteger(const int integer);
-	static const std::string encodeArray(const std::vector<std::string>& arr);
+	static const std::string encodeArray(const std::vector<std::string>& arr, bool dontEncodeItems = false);
+	static const std::string encodeError(const std::string& errMsg);
 };
 
 #endif
