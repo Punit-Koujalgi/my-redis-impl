@@ -18,5 +18,10 @@
 #define TYPE "type"
 #define XADD "xadd"
 #define XRANGE "xrange"
+#define XREAD "xread"
+
+// Some other utility defines
+#define STREAMS "streams"
+#define NO_REPLY "NOREPLY"
 
 #endif // SUPPORTEDCOMMANDS_H
