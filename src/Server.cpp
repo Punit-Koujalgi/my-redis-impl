@@ -177,7 +177,7 @@ int Server::HandleConnection(const int clientFd)
 	/* Process the command */
 	auto result{HandleCommand(std::make_unique<std::vector<std::string>>(commandArgs), clientFd)};
 
-	if (bShouldRespondBack)
+	if (bShouldRespondBack && result != NO_REPLY)
 	{
 		//std::cout << "Sending response...[" << result << "]\n";
 		std::cout << "Sending response..." << result << std::endl;
@@ -459,9 +459,9 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 
 		return RESPEncoder::encodeSimpleString("none");
 	}
-	else if (ptrArray->at(0) == XADD || ptrArray->at(0) == XRANGE)
+	else if (ptrArray->at(0) == XADD || ptrArray->at(0) == XRANGE || ptrArray->at(0) == XREAD)
 	{
-		return streamHandler.StreamCommandProcessor(std::move(ptrArray));
+		return streamHandler.StreamCommandProcessor(std::move(ptrArray), clientFd);
 	}
 
 	return NULL_BULK_ENCODED; // null bulk string
