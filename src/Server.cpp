@@ -241,7 +241,7 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 	}
 	else if (ptrArray->at(0) == INFO)
 	{
-		return CommandHandler::INFO_cmdHandler(std::move(ptrArray), m_mapConfiguration);
+		return CommandHandler::INFO_cmdHandler(std::move(ptrArray), *this);
 	}
 	else if (ptrArray->at(0) == REPLCONF)
 	{
