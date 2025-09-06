@@ -326,4 +326,24 @@ std::string CommandHandler::INCR_cmdHandler(CommandArray commandArgs, KeyValueSt
     return NULL_BULK_ENCODED; // null bulk string
 }
 
+std::string CommandHandler::TRANSACTION_cmdHandler(CommandArray commandArgs, Server& server, const int clientFd) // MULTI, EXEC, DISCARD
+{
+    if (commandArgs->empty())
+        return RESPEncoder::encodeError("Invalid command");
 
+    if (toLower(commandArgs->at(0)) == MULTI)
+    {
+        return server.m_transactionHandler.AddTransaction(clientFd);
+    }
+    else if (toLower(commandArgs->at(0)) == EXEC)
+    {
+        return server.m_transactionHandler.ExecuteTransaction(clientFd);
+    }
+    else if (toLower(commandArgs->at(0)) == DISCARD)
+    {
+        return server.m_transactionHandler.DiscardTransaction(clientFd);
+    }
+
+    return server.m_transactionHandler.AddCommandToTransaction(clientFd, std::move(*commandArgs));
+
+}

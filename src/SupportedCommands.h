@@ -20,6 +20,9 @@
 #define XRANGE "xrange"
 #define XREAD "xread"
 #define INCR "incr"
+#define MULTI "multi"
+#define EXEC "exec"
+#define DISCARD "discard"
 
 // Some other utility defines
 #define STREAMS "streams"

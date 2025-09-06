@@ -206,6 +206,11 @@ int Server::HandleConnection(const int clientFd)
 std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrArray, const int clientFd /* Replication purposes */)
 {
 	ptrArray->at(0).assign(toLower(ptrArray->at(0)));
+
+	if (ptrArray->at(0) == MULTI || m_transactionHandler.IsInTransaction(clientFd))
+	{
+		return CommandHandler::TRANSACTION_cmdHandler(std::move(ptrArray), *this, clientFd);
+	}
 	
 	if (ptrArray->at(0) == PING)
 	{
@@ -266,7 +271,7 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 	else if (ptrArray->at(0) == INCR)
 	{
 		return CommandHandler::INCR_cmdHandler(std::move(ptrArray), m_kvStore);
-	}
+	}	
 
 	return NULL_BULK_ENCODED; // null bulk string
 }

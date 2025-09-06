@@ -10,13 +10,14 @@
 
 #include "KeyValueStore.h"
 #include "StreamHandler.h"
+#include "TransactionHandler.h"
 
 class Server
 {
 
 public:
 
-	Server() = default;
+	Server() : m_transactionHandler(this) {}
 	~Server();
 
 	void startServer(int argc, char **argv);
@@ -41,6 +42,8 @@ private: /* variables */
 
 	KeyValueStore m_kvStore;
 	StreamHandler m_streamHandler;
+	TransactionHandler m_transactionHandler;
+
 	std::unordered_map<std::string, std::string> m_mapConfiguration;
 	std::map<std::string, int> m_mapReplicaPortSocket;
 
@@ -49,6 +52,7 @@ private: /* variables */
 	int m_dConnBacklog{10};
 
 	friend class CommandHandler;
+	friend class TransactionHandler;
 };
 
 #endif
