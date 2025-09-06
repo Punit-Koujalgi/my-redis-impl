@@ -32,6 +32,7 @@
 #define BLPOP "blpop"
 
 // Some other utility defines
+#define NULL_BULK_ENCODED "$-1\r\n"
 #define STREAMS "streams"
 #define NO_REPLY "NOREPLY"
 
