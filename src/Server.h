@@ -11,6 +11,7 @@
 #include "KeyValueStore.h"
 #include "StreamHandler.h"
 #include "TransactionHandler.h"
+#include "ListHandler.h"
 
 class Server
 {
@@ -43,6 +44,7 @@ private: /* variables */
 	KeyValueStore m_kvStore;
 	StreamHandler m_streamHandler;
 	TransactionHandler m_transactionHandler;
+	ListHandler m_listHandler;
 
 	std::unordered_map<std::string, std::string> m_mapConfiguration;
 	std::map<std::string, int> m_mapReplicaPortSocket;

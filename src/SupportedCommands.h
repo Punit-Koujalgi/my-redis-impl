@@ -23,9 +23,17 @@
 #define MULTI "multi"
 #define EXEC "exec"
 #define DISCARD "discard"
+#define LPOP "lpop"
+#define RPOP "rpop"
+#define LPUSH "lpush"
+#define RPUSH "rpush"
+#define LRANGE "lrange"
+#define LLEN "llen"
+#define BLPOP "blpop"
 
 // Some other utility defines
 #define STREAMS "streams"
 #define NO_REPLY "NOREPLY"
 
 #endif // SUPPORTEDCOMMANDS_H
+

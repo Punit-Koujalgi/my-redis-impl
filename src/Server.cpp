@@ -271,7 +271,16 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 	else if (ptrArray->at(0) == INCR)
 	{
 		return CommandHandler::INCR_cmdHandler(std::move(ptrArray), m_kvStore);
-	}	
+	}
+	else if (ptrArray->at(0) == LPOP || ptrArray->at(0) == RPOP || ptrArray->at(0) == LPUSH || ptrArray->at(0) == RPUSH
+		|| ptrArray->at(0) == LRANGE || ptrArray->at(0) == LLEN || ptrArray->at(0) == BLPOP)
+	{
+		return m_listHandler.ListCommandProcessor(std::move(ptrArray), clientFd);
+	}
+	else
+	{
+		return RESPEncoder::encodeError("Unsupported command or wrong command format");
+	}
 
 	return NULL_BULK_ENCODED; // null bulk string
 }
