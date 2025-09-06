@@ -61,6 +61,7 @@
         "future": "cpp",
         "mutex": "cpp",
         "ranges": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "list": "cpp"
     }
 }

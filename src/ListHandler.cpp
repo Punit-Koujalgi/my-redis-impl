@@ -234,7 +234,10 @@ std::string ListHandler::blpopHandler(CommandArray commandArgs, const int client
 
     std::thread blockingThread([this, blockingVal, clientFd]()
     {
-        bool eventOccurred = m_blockingLists[clientFd].second->waitForEvent(std::chrono::milliseconds(std::stoul(blockingVal) * 1000));
+        auto timeoutDuration = std::chrono::duration<double>(std::stod(blockingVal));
+        auto timeoutMs = std::chrono::duration_cast<std::chrono::milliseconds>(timeoutDuration);
+
+        bool eventOccurred = m_blockingLists[clientFd].second->waitForEvent(timeoutMs);
         std::string response;
 
         if (eventOccurred)
