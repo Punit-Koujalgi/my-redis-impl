@@ -107,6 +107,7 @@ std::string StreamHandler::xaddHandler(CommandArray commandArgs)
     auto result = m_streams[streamName]->AddEntry(firstId, secondId, fieldValues);
 
     {
+        // Signal any blocking readers waiting on this stream
         std::lock_guard<std::mutex> lock(m_blockingStreamsMutex);
         if (m_blockingStreams.find(streamName) != m_blockingStreams.end())
         {
