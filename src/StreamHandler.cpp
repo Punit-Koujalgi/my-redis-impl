@@ -225,9 +225,12 @@ std::string StreamHandler::xreadHandler(CommandArray commandArgs, const int clie
     for (size_t i = 0; i < streamNames.size(); ++i)
     {
         const auto &streamName = streamNames[i];
-        const auto &streamStartId = streamStartIds[i];
+        auto &streamStartId = streamStartIds[i];
 
         std::cout << "Processing stream: " << streamName << " from Id: " << streamStartId << std::endl;
+
+        if (streamStartId == "$")
+            streamStartId = m_streams[streamName]->getLatestEntryId();
 
         // Get the entries for the stream
         auto entries = m_streams[streamName]->GetEntriesInRange(streamStartId, "+", true /* exclusiveStart */);
