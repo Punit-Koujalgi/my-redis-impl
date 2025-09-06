@@ -207,7 +207,7 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 {
 	ptrArray->at(0).assign(toLower(ptrArray->at(0)));
 
-	if (ptrArray->at(0) == MULTI || m_transactionHandler.IsInTransaction(clientFd))
+	if (ptrArray->at(0) == MULTI || ptrArray->at(0) == EXEC || ptrArray->at(0) == DISCARD || m_transactionHandler.IsInTransaction(clientFd))
 	{
 		return CommandHandler::TRANSACTION_cmdHandler(std::move(ptrArray), *this, clientFd);
 	}
