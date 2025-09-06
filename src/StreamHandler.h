@@ -17,8 +17,8 @@ private:
     std::string m_streamName;
     unsigned long m_latestFirstId{};  // usually the millisecond part of the Id
     unsigned long m_latestSecondId{}; // usually the sequence number part of the Id
-    bool firstIdDefault{false};
-    bool secondIdDefault{false};
+    bool m_firstIdDefault{false};
+    bool m_secondIdDefault{false};
 
     /* Stream Store
        Storing this way to allow for efficient retrieval of stream data by Ids and using binary search

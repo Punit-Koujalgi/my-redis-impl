@@ -40,7 +40,7 @@ private:
 private: /* variables */
 
 	KeyValueStore m_kvStore;
-	StreamHandler streamHandler;
+	StreamHandler m_streamHandler;
 	std::unordered_map<std::string, std::string> m_mapConfiguration;
 	std::map<std::string, int> m_mapReplicaPortSocket;
 
@@ -48,6 +48,7 @@ private: /* variables */
 	int m_dMasterConnSocket{-1};
 	int m_dConnBacklog{10};
 
+	friend class CommandHandler;
 };
 
 #endif

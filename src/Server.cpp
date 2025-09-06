@@ -8,6 +8,7 @@
 #include <sys/time.h>
 
 #include "Server.h"
+#include "CommandHandler.h"
 #include "RESPEncoder.h"
 #include "RESPDecoder.h"
 #include "Utility.h"
@@ -208,38 +209,27 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 	
 	if (ptrArray->at(0) == PING)
 	{
-		return "+PONG\r\n";
+		return CommandHandler::PING_cmdHandler(std::move(ptrArray));
 	}
 	else if (ptrArray->at(0) == ECHO)
 	{
-		return "+" + ptrArray->at(1) + "\r\n";
+		return CommandHandler::ECHO_cmdHandler(std::move(ptrArray));
 	}
 	else if (ptrArray->at(0) == COMMAND)
 	{
-		return "+OK\r\n";
+		return CommandHandler::COMMAND_cmdHandler(std::move(ptrArray));
 	}
 	else if (ptrArray->at(0) == SET)
 	{
-		if (ptrArray->size() == 5  && toLower(ptrArray->at(3)) == "px")
-		{
-			return m_kvStore.set(ptrArray->at(1), ptrArray->at(2), stoi(ptrArray->at(4)));
-		}
-		else if (ptrArray->size() == 3)
-		{
-			return m_kvStore.set(ptrArray->at(1), ptrArray->at(2));
-		}
+		return CommandHandler::SET_cmdHandler(std::move(ptrArray), m_kvStore);
 	}
 	else if (ptrArray->at(0) == GET)
 	{
-		return m_kvStore.get(ptrArray->at(1));
+		return CommandHandler::GET_cmdHandler(std::move(ptrArray), m_kvStore);
 	}
 	else if (ptrArray->at(0) == CONFIG)
 	{
-		if (toLower(ptrArray->at(1)) == "get" &&
-				m_mapConfiguration.find(ptrArray->at(2)) != m_mapConfiguration.end())
-		{
-			return RESPEncoder::encodeArray({ptrArray->at(2), m_mapConfiguration[ptrArray->at(2)]});
-		}
+		return CommandHandler::CONFIG_cmdHandler(std::move(ptrArray), m_mapConfiguration);
 	}
 	else if (ptrArray->at(0) == SAVE)
 	{
@@ -247,221 +237,35 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 	}
 	else if (ptrArray->at(0) == KEYS)
 	{
-		return RESPEncoder::encodeArray(*m_kvStore.getAllKeys(ptrArray->at(1)));
+		return CommandHandler::KEYS_cmdHandler(std::move(ptrArray), m_kvStore);
 	}
 	else if (ptrArray->at(0) == INFO)
 	{
-		if (ptrArray->at(1) == toLower("replication"))
-		{
-			std::string role = getReplicationRole();
-			std::string result = "role:" + role + "\n";
-
-			if (role == "master")
-			{
-				result.append("master_replid:");
-				result.append(m_mapConfiguration["master_replid"]);
-				result.append("\n");
-				result.append("master_repl_offset:");
-				result.append(m_mapConfiguration["master_repl_offset"]);
-				result.append("\n");
-			}
-
-			return RESPEncoder::encodeString(result);
-		}
+		return CommandHandler::INFO_cmdHandler(std::move(ptrArray), m_mapConfiguration);
 	}
 	else if (ptrArray->at(0) == REPLCONF)
 	{
-		if (ptrArray->size() == 3 && ptrArray->at(1) == "listening-port")
-		{
-			m_mapReplicaPortSocket[ptrArray->at(2)] = clientFd;
-			std::cout << "Got Replica connection [port: " << ptrArray->at(2) << "]" << std::endl;
-		}
-
-		if (ptrArray->size() == 3 && toLower(ptrArray->at(1)) == "getack")
-		{
-			if (toLower(ptrArray->at(1)) == "wait")
-				return RESPEncoder::encodeArray({REPLCONF, "ACK", m_mapConfiguration["waitcmd_offset"]});
-			else
-				return RESPEncoder::encodeArray({REPLCONF, "ACK", m_mapConfiguration["master_repl_offset"]});
-		}
-
-		return "+OK\r\n";
+		return CommandHandler::REPLCONF_cmdHandler(std::move(ptrArray), *this, clientFd);
 	}
 	else if (ptrArray->at(0) == PSYNC)
 	{
-		std::string result = "FULLRESYNC " +
-				m_mapConfiguration["master_replid"] + " " +
-				m_mapConfiguration["master_repl_offset"];
-
-		result = RESPEncoder::encodeSimpleString(result);
-
-		std::cout << "Sending response..." << std::endl;
-		send(clientFd, result.c_str(), result.length(), 0);
-
-		/* Send initial empty rdb file */
-		const std::string empty_rdb = "\x52\x45\x44\x49\x53\x30\x30\x31\x31\xfa\x09\
-\x72\x65\x64\x69\x73\x2d\x76\x65\x72\x05\x37\x2e\x32\x2e\x30\xfa\x0a\x72\x65\
-\x64\x69\x73\x2d\x62\x69\x74\x73\xc0\x40\xfa\x05\x63\x74\x69\x6d\x65\xc2\x6d\
-\x08\xbc\x65\xfa\x08\x75\x73\x65\x64\x2d\x6d\x65\x6d\xc2\xb0\xc4\x10\x00\xfa\
-\x08\x61\x6f\x66\x2d\x62\x61\x73\x65\xc0\x00\xff\xf0\x6e\x3b\xfe\xc0\xff\x5a\xa2";
-
-		return "$" + std::to_string(empty_rdb.length()) + "\r\n" + empty_rdb;
+		return CommandHandler::PSYNC_cmdHandler(std::move(ptrArray), *this, clientFd);
 	}
 	else if (ptrArray->at(0) == WAIT)
 	{
-		if (m_mapConfiguration["waitcmd_offset"] == "0")
-		{
-			std::cout << "No write commands yet" << std::endl;
-			return RESPEncoder::encodeInteger(m_mapReplicaPortSocket.size());
-		}
-
-		int replicaThreshold = std::stoi(ptrArray->at(1));
-		int timeThreshold = std::stoi(ptrArray->at(2));
-		int replicasMetThreshold = 0;
-
-		std::cout << "Got thresholds: " << replicaThreshold << " " << timeThreshold << std::endl;
-		// Trying FD approach
-		fd_set replSockets, readySockets;
-		FD_ZERO(&replSockets);
-
-		for (auto& replica : m_mapReplicaPortSocket)
-		{
-			FD_SET(replica.second, &replSockets);
-
-			std::cout << "Sending req to replica: " << replica.first << " socket: " << replica.second << std::endl;
-			// sendData(replica.second, {REPLCONF, "getack", "wait"});
-			sendData(replica.second, {"REPLCONF", "GETACK", "*"});
-		}
-
-		timeval timeUntil;
-		gettimeofday(&timeUntil, nullptr);
-
-		// set timeout
-		timeUntil.tv_usec += timeThreshold * 1000;
-		if (timeUntil.tv_usec > 1000000)
-		{// update seconds
-			timeUntil.tv_sec += timeUntil.tv_usec / 1000000;
-			timeUntil.tv_usec = timeUntil.tv_usec % 1000000;
-		}
-
-		while (true)
-		{
-			timeval timeout;
-			timeout.tv_usec = 0;
-			timeout.tv_sec = 0; // polling; not right need to change
-
-			readySockets = replSockets;
-
-			if (select(FD_SETSIZE, &readySockets, nullptr, nullptr, &timeout) < 0)
-			{
-				std::cout << "select() error or timed out";
-				break;
-			}
-
-			for (int currSock{0}; currSock < FD_SETSIZE; ++currSock)
-			{
-				if (FD_ISSET(currSock, &readySockets))
-				{
-					try
-					{
-						auto ackResponse{SocketReader(currSock).ReadArray()};
-						if (ackResponse.size() == 3)
-						{
-							std::cout << "[Replica: " << currSock << "] is up to date. Offset: " << std::stoi(ackResponse.back()) << std::endl;
-							++replicasMetThreshold;
-						}
-					}
-					catch(const std::exception& e)
-					{
-						FD_CLR(currSock, &replSockets);
-					}
-				}
-			}
-
-			//Check time threshold
-			timeval t;
-			gettimeofday(&t, nullptr);
-
-			if (t.tv_sec > timeUntil.tv_sec || (t.tv_sec == timeUntil.tv_sec && t.tv_usec > timeUntil.tv_usec))
-			{
-				std::cout << "Timed out!" << std::endl;
-				break;
-			}
-		}
-
-		/*
-		timeval timeUntil;
-		gettimeofday(&timeUntil, nullptr);
-
-		// set timeout
-		timeUntil.tv_usec += timeThreshold * 1000;
-		if (timeUntil.tv_usec > 1000000)
-		{// update seconds
-			timeUntil.tv_sec += timeUntil.tv_usec / 1000000;
-			timeUntil.tv_usec = timeUntil.tv_usec % 1000000;
-		}
-
-		std::cout << "Got thresholds: " << replicaThreshold << " " << timeThreshold << std::endl;
-
-		for (auto& replica : m_mapReplicaPortSocket)
-		{
-			try
-			{
-				std::cout << "Checking replica: " << replica.first << std::endl;
-				// sendData(replica.second, {REPLCONF, "getack", "wait"});
-				sendData(replica.second, {"REPLCONF", "GETACK", "*"});
-				auto ackResponse{SocketReader(replica.second).ReadArray()};
-
-				// if (ackResponse.size() == 3 && std::stoi(ackResponse.back()) == std::stoi(m_mapConfiguration["waitcmd_offset"]))
-				if (ackResponse.size() == 3)
-				{
-					std::cout << "[Replica: " << replica.first << "] is up to date. Offset: " << std::stoi(ackResponse.back()) << std::endl;
-					++replicasMetThreshold;
-
-					// if (replicasMetThreshold == replicaThreshold)
-					// {
-					// 	std::cout << "Replica threshold met -> " << replicasMetThreshold << std::endl;
-					// 	break;
-					// }
-				}
-				else
-					throw std::runtime_error("Not up to date");
-			}
-			catch (const std::exception& e)
-			{
-				std::cout << "[Replica: " << replica.first
-					<< "] did not respond or offset not up to date. Error: " << e.what() << std::endl;
-			}
-
-			// Check time threshold
-			// timeval t;
-			// gettimeofday(&t, nullptr);
-
-			// if (t.tv_sec >= timeUntil.tv_sec || t.tv_usec >= timeUntil.tv_usec)
-			// {
-			// 	std::cout << "Timed out!" << std::endl;
-			// 	break;
-			// }
-		}
-		*/
-
-		return RESPEncoder::encodeInteger(replicasMetThreshold);
+		return CommandHandler::WAIT_cmdHandler(std::move(ptrArray), *this);
 	}
 	else if (ptrArray->at(0) == TYPE)
 	{
-		if (m_kvStore.get(ptrArray->at(1)) != NULL_BULK_ENCODED)
-			return RESPEncoder::encodeSimpleString("string");
-		else
-		{
-			if (streamHandler.IsStreamPresent(ptrArray->at(1)))
-				return RESPEncoder::encodeSimpleString("stream");
-		}
-
-		return RESPEncoder::encodeSimpleString("none");
+		return CommandHandler::TYPE_cmdHandler(std::move(ptrArray), m_kvStore, m_streamHandler);
 	}
 	else if (ptrArray->at(0) == XADD || ptrArray->at(0) == XRANGE || ptrArray->at(0) == XREAD)
 	{
-		return streamHandler.StreamCommandProcessor(std::move(ptrArray), clientFd);
+		return m_streamHandler.StreamCommandProcessor(std::move(ptrArray), clientFd);
+	}
+	else if (ptrArray->at(0) == INCR)
+	{
+		return CommandHandler::INCR_cmdHandler(std::move(ptrArray), m_kvStore);
 	}
 
 	return NULL_BULK_ENCODED; // null bulk string

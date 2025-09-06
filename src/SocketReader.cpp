@@ -83,7 +83,6 @@ std::vector<std::string> SocketReader::ReadArray()
 		while ((c = (char)readByte()) != '\r')
 			leng.push_back(c);
 
-		std::cout << leng << std::endl;
 		int length = std::stoi(leng);
 		readByte(); // for \n 
 

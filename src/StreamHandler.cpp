@@ -408,14 +408,14 @@ std::string Stream::AddEntry(unsigned long entryFirstId, unsigned long entrySeco
     std::lock_guard<std::mutex> lock(m_streamStoreMutex);
 
     // Handle default cases
-    if (firstIdDefault)
+    if (m_firstIdDefault)
     {
         // Auto-generate timestamp
         auto now = std::chrono::system_clock::now();
         entryFirstId = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
         entrySecondId = 0;
     }
-    else if (secondIdDefault)
+    else if (m_secondIdDefault)
     {
         if (m_streamStore.find(entryFirstId) != m_streamStore.end())
         {
@@ -450,20 +450,20 @@ std::string Stream::AddEntry(unsigned long entryFirstId, unsigned long entrySeco
     m_streamStore[entryFirstId][entrySecondId] = std::move(fieldValues);
 
     // Reset default flags
-    firstIdDefault = false;
-    secondIdDefault = false;
+    m_firstIdDefault = false;
+    m_secondIdDefault = false;
 
     return RESPEncoder::encodeString(std::to_string(entryFirstId) + "-" + std::to_string(entrySecondId));
 }
 
 void Stream::setFirstIdDefault()
 {
-    firstIdDefault = true;
+    m_firstIdDefault = true;
 }
 
 void Stream::setSecondIdDefault()
 {
-    secondIdDefault = true;
+    m_secondIdDefault = true;
 }
 
 std::string Stream::getLatestEntryId() const

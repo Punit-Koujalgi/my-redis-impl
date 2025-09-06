@@ -19,6 +19,7 @@
 #define XADD "xadd"
 #define XRANGE "xrange"
 #define XREAD "xread"
+#define INCR "incr"
 
 // Some other utility defines
 #define STREAMS "streams"
