@@ -190,6 +190,13 @@ int Server::HandleConnection(const int clientFd)
 	{
 		std::cout << "Client disconnected: " << clientFd << std::endl;
 
+		if (clientFd == m_dMasterConnSocket)
+		{
+			std::cout << "Master disconnected..." << std::endl;
+			close(m_dMasterConnSocket);
+			m_dMasterConnSocket = -1;
+		}
+
 		/* We fall here whenever the client disconnects 
 		   So go place to handle cancelling subscriptions, blocking commands etc
 		*/
@@ -209,7 +216,8 @@ int Server::HandleConnection(const int clientFd)
 
 	/* Process the command */
 	auto result{HandleCommand(std::make_unique<std::vector<std::string>>(commandArgs), clientFd)};
-
+	std::cout << "Processed command, result: " << result << std::endl;
+	std::cout << "Should respond back: " << bShouldRespondBack << std::endl;
 	if (bShouldRespondBack && result != NO_REPLY)
 	{
 		//std::cout << "Sending response...[" << result << "]\n";
@@ -523,8 +531,8 @@ void Server::setupSignalHandling()
 	}
 
 	// Set up signal handlers
-	// std::signal(SIGINT, signalHandler);	 // Ctrl+C
-	// std::signal(SIGTERM, signalHandler); // Termination request
+	std::signal(SIGINT, signalHandler);	 // Ctrl+C
+	std::signal(SIGTERM, signalHandler); // Termination request
 
 	std::cout << "Signal handling setup complete.." << std::endl;
 }

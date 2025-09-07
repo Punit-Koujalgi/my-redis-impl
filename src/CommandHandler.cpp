@@ -94,7 +94,6 @@ std::string CommandHandler::INFO_cmdHandler(CommandArray commandArgs, Server& se
             result.append("\n");
         }
 
-		std::cout << "INFO result:\n" << result << std::endl;
         return RESPEncoder::encodeString(result);
     }
 
