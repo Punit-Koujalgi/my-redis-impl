@@ -216,8 +216,7 @@ int Server::HandleConnection(const int clientFd)
 
 	/* Process the command */
 	auto result{HandleCommand(std::make_unique<std::vector<std::string>>(commandArgs), clientFd)};
-	std::cout << "Processed command, result: " << result << std::endl;
-	std::cout << "Should respond back: " << bShouldRespondBack << std::endl;
+
 	if (bShouldRespondBack && result != NO_REPLY)
 	{
 		//std::cout << "Sending response...[" << result << "]\n";

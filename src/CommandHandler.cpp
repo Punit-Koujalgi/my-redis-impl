@@ -359,6 +359,6 @@ std::string CommandHandler::SUBSCRIPTION_cmdHandler(CommandArray commandArgs, Se
 		return server.m_subscriptionHandler.SubscriptionCommandProcessor(std::move(commandArgs), clientFd);
 	}
 
-	return RESPEncoder::encodeError("Can't execute " + commandArgs->at(0) + " in subscribed mode");
+	return RESPEncoder::encodeError("Can't execute '" + commandArgs->at(0) + "' in subscribed mode");
 }
 
