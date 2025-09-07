@@ -523,8 +523,8 @@ void Server::setupSignalHandling()
 	}
 
 	// Set up signal handlers
-	std::signal(SIGINT, signalHandler);	 // Ctrl+C
-	std::signal(SIGTERM, signalHandler); // Termination request
+	// std::signal(SIGINT, signalHandler);	 // Ctrl+C
+	// std::signal(SIGTERM, signalHandler); // Termination request
 
 	std::cout << "Signal handling setup complete.." << std::endl;
 }
