@@ -12,6 +12,7 @@
 #include "StreamHandler.h"
 #include "TransactionHandler.h"
 #include "ListHandler.h"
+#include "SubscriptionHandler.h"
 
 class Server
 {
@@ -39,12 +40,19 @@ private:
 	void sendData(const int fd, const std::vector<std::string>& vec);
 	std::string recvData(const int fd); 
 
+	// Signal handling methods
+    void setupSignalHandling();
+    void cleanup();
+    static void signalHandler(int signal);
+    static void sendShutdownSignal();
+
 private: /* variables */
 
 	KeyValueStore m_kvStore;
 	StreamHandler m_streamHandler;
 	TransactionHandler m_transactionHandler;
 	ListHandler m_listHandler;
+	SubscriptionHandler m_subscriptionHandler;
 
 	std::unordered_map<std::string, std::string> m_mapConfiguration;
 	std::map<std::string, int> m_mapReplicaPortSocket;
@@ -53,8 +61,12 @@ private: /* variables */
 	int m_dMasterConnSocket{-1};
 	int m_dConnBacklog{10};
 
+	// Signal handling pipe
+    static int signalPipe[2];  // Self-pipe for signal handling
+
 	friend class CommandHandler;
 	friend class TransactionHandler;
+	friend class SubscriptionHandler;
 };
 
 #endif

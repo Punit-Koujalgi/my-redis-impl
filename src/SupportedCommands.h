@@ -30,6 +30,9 @@
 #define LRANGE "lrange"
 #define LLEN "llen"
 #define BLPOP "blpop"
+#define SUBSCRIBE "subscribe"
+#define UNSUBSCRIBE "unsubscribe"
+#define PUBLISH "publish"
 
 // Some other utility defines
 #define NULL_BULK_ENCODED "$-1\r\n"

@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <sys/time.h>
+#include <fcntl.h>		// for fcntl()
 
 #include "Server.h"
 #include "CommandHandler.h"
@@ -15,11 +16,11 @@
 #include "SocketReader.h"
 #include "SupportedCommands.h"
 #include "StreamHandler.h"
+#include <csignal>
+#include <cstring>
 
-Server::~Server()
-{
-	close(m_dServerFd);
-}
+
+int Server::signalPipe[2] = {-1, -1};
 
 void Server::startServer(int argc, char **argv)
 {
@@ -60,6 +61,9 @@ void Server::startServer(int argc, char **argv)
     	throw std::runtime_error("setsockopt failed");
   	}
   
+	// Setup signal handling after socket creation but before event loop	
+	setupSignalHandling();
+
 	if (m_mapConfiguration["port"].empty())	
 			m_mapConfiguration["port"] = "6379";
 	std::cout << "Redis port: " << m_mapConfiguration["port"] << std::endl;
@@ -88,7 +92,6 @@ void Server::startServer(int argc, char **argv)
 void Server::runEventLoop()
 {
 	fd_set currentSockets, readySockets;
-	timeval timeout = {120};
 
 #if 0 // test one connection
 	int clientfd = acceptNewConnection();
@@ -101,6 +104,9 @@ void Server::runEventLoop()
 	FD_ZERO(&currentSockets);
 	FD_SET(m_dServerFd, &currentSockets);
 
+    // Add signal pipe read end to the socket set
+    FD_SET(signalPipe[0], &currentSockets);
+
 	if (getReplicationRole() == "slave")
 	{
 		/* Add master socket to current sockets to master can send commands */
@@ -112,12 +118,29 @@ void Server::runEventLoop()
 		readySockets = currentSockets;
 
 		if (select(FD_SETSIZE, &readySockets, nullptr, nullptr, nullptr) < 0)
-			throw std::runtime_error("select() error or timed out");
+		{
+			if (errno == EINTR)
+                continue; // Interrupted by signal, continue
 
+			throw std::runtime_error("select() error or timed out");
+		}
 		for (int currSock{0}; currSock < FD_SETSIZE; ++currSock)
 		{
 			if (FD_ISSET(currSock, &readySockets))
 			{
+				// Check if it's the signal pipe
+                if (currSock == signalPipe[0])
+				{
+                    char buffer[256];
+                    ssize_t bytesRead = read(signalPipe[0], buffer, sizeof(buffer));
+                    
+                    if (bytesRead > 0)
+					{
+                        std::cout << "Received shutdown signal through pipe" << std::endl;
+                        return; // Exit the event loop
+                    }
+                }
+
 				if (currSock == m_dServerFd)
 				{
 					// server received a connection
@@ -129,7 +152,10 @@ void Server::runEventLoop()
 					// One of the client connections has msg
 					int bytesRead = HandleConnection(currSock);
 					if(bytesRead == -1)
+					{
 						FD_CLR(currSock, &currentSockets);
+						close(currSock);
+					}
 				}
 			}
 		}
@@ -162,7 +188,13 @@ int Server::HandleConnection(const int clientFd)
 	auto commandArgs{SocketReader(clientFd).ReadArray()};
 	if (commandArgs.empty())
 	{
-		std::cout << "No data read" << std::endl;
+		std::cout << "Client disconnected: " << clientFd << std::endl;
+
+		/* We fall here whenever the client disconnects 
+		   So go place to handle cancelling subscriptions, blocking commands etc
+		*/
+		m_subscriptionHandler.unsubscribeClientFromAllChannels(clientFd, true); // don't respond to client
+		
 		return -1;
 	}
 
@@ -211,7 +243,12 @@ std::string Server::HandleCommand(std::unique_ptr<std::vector<std::string>> ptrA
 	{
 		return CommandHandler::TRANSACTION_cmdHandler(std::move(ptrArray), *this, clientFd);
 	}
-	
+
+	if (ptrArray->at(0) == SUBSCRIBE || ptrArray->at(0) == UNSUBSCRIBE || ptrArray->at(0) == PUBLISH || m_subscriptionHandler.IsClientInSubscribedMode(clientFd))
+	{
+		return CommandHandler::SUBSCRIPTION_cmdHandler(std::move(ptrArray), *this, clientFd);
+	}
+
 	if (ptrArray->at(0) == PING)
 	{
 		return CommandHandler::PING_cmdHandler(std::move(ptrArray));
@@ -447,3 +484,115 @@ bool Server::shouldRespondBack(const std::string& status, const int fd, std::vec
 }
 
 
+void Server::signalHandler(int signal)
+{
+    std::cout << "\nReceived signal " << signal << ". Initiating graceful shutdown..." << std::endl;
+    sendShutdownSignal();
+}
+
+
+void Server::sendShutdownSignal()
+{
+    if (signalPipe[1] != -1)
+	{
+        char shutdownMsg = 'Q'; // 'Q' for quit
+        ssize_t result = write(signalPipe[1], &shutdownMsg, 1);
+        if (result == -1)
+		{
+            // Don't use std::cerr in signal handler (not async-signal-safe)
+            // Just ignore the error or use write() to stderr directly
+            std::string msg = "Failed to write to signal pipe\n";
+            write(STDERR_FILENO, msg.c_str(), msg.length());
+        }
+    }
+}
+
+void Server::setupSignalHandling()
+{
+	// Create a pipe for signal communication
+	if (pipe(signalPipe) == -1)
+	{
+		throw std::runtime_error("Failed to create signal pipe: " + std::string(strerror(errno)));
+	}
+
+	// Make the write end non-blocking
+	int flags = fcntl(signalPipe[1], F_GETFL);
+	if (flags == -1 || fcntl(signalPipe[1], F_SETFL, flags | O_NONBLOCK) == -1)
+	{
+		throw std::runtime_error("Failed to set pipe non-blocking: " + std::string(strerror(errno)));
+	}
+
+	// Set up signal handlers
+	std::signal(SIGINT, signalHandler);	 // Ctrl+C
+	std::signal(SIGTERM, signalHandler); // Termination request
+
+	std::cout << "Signal handling setup complete.." << std::endl;
+}
+
+void Server::cleanup()
+{
+	std::cout << "Performing cleanup..." << std::endl;
+
+	// Close all client connections
+	for (int fd = 0; fd < FD_SETSIZE; ++fd)
+	{
+		if (fd != m_dServerFd && fd != m_dMasterConnSocket &&
+			fd != signalPipe[0] && fd != signalPipe[1])
+		{
+			if (fd > 2)
+			{ // Don't close stdin/stdout/stderr
+				close(fd);
+			}
+		}
+	}
+
+	// Cancel all blocking operations
+	// Add these methods when you implement cancellation
+	// m_listHandler.cancelAllBlockingOperations();
+	// m_streamHandler.cancelAllBlockingOperations();
+
+	// Close master connection if slave
+	if (m_dMasterConnSocket != -1)
+	{
+		close(m_dMasterConnSocket);
+		m_dMasterConnSocket = -1;
+	}
+
+	// Save state if needed
+	// try
+	// {
+	// 	// Add state saving logic here
+	// 	std::cout << "State preservation complete" << std::endl;
+	// }
+	// catch (const std::exception &e)
+	// {
+	// 	std::cout << "Warning: Failed to save state: " << e.what() << std::endl;
+	// }
+
+	std::cout << "Cleanup complete" << std::endl;
+}
+
+Server::~Server()
+{
+	cleanup();
+
+	if (m_dServerFd != -1)
+	{
+		close(m_dServerFd);
+		m_dServerFd = -1;
+	}
+
+	// Close signal pipe
+	if (signalPipe[0] != -1)
+	{
+		close(signalPipe[0]);
+		signalPipe[0] = -1;
+	}
+	if (signalPipe[1] != -1)
+	{
+		close(signalPipe[1]);
+		signalPipe[1] = -1;
+	}
+
+	std::cout << "Server Exiting..." << std::endl;
+}

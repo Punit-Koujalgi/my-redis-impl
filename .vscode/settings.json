@@ -62,6 +62,8 @@
         "mutex": "cpp",
         "ranges": "cpp",
         "thread": "cpp",
-        "list": "cpp"
+        "list": "cpp",
+        "csignal": "cpp",
+        "cstring": "cpp"
     }
 }

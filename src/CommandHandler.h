@@ -33,7 +33,7 @@ public:
     static std::string TYPE_cmdHandler(CommandArray commandArgs, KeyValueStore& kvStore, StreamHandler& streamHandler);
     static std::string INCR_cmdHandler(CommandArray commandArgs, KeyValueStore& kvStore);
     static std::string TRANSACTION_cmdHandler(CommandArray commandArgs, Server& server, const int clientFd); // MULTI, EXEC, DISCARD
-
+    static std::string SUBSCRIPTION_cmdHandler(CommandArray commandArgs, Server& server, const int clientFd);
 };
 
 

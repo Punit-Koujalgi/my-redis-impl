@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
 		std::cerr << "Error: Unhandled exception occurred :(" << '\n';
 	}
 
-	std::cout << "Server exiting..." << std::endl;
+	std::cout << "Redis OUT!" << std::endl;
 
 	return 0;
 }

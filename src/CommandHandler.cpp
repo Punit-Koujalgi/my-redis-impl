@@ -347,3 +347,18 @@ std::string CommandHandler::TRANSACTION_cmdHandler(CommandArray commandArgs, Ser
     return server.m_transactionHandler.AddCommandToTransaction(clientFd, std::move(*commandArgs));
 
 }
+
+std::string CommandHandler::SUBSCRIPTION_cmdHandler(CommandArray commandArgs, Server& server, const int clientFd)
+{
+	if (commandArgs->empty())
+		return RESPEncoder::encodeError("Invalid command");
+
+	if (toLower(commandArgs->at(0)) == SUBSCRIBE || toLower(commandArgs->at(0)) == UNSUBSCRIBE
+		|| toLower(commandArgs->at(0)) == PING || toLower(commandArgs->at(0)) == PUBLISH)
+	{
+		return server.m_subscriptionHandler.SubscriptionCommandProcessor(std::move(commandArgs), clientFd);
+	}
+
+	return RESPEncoder::encodeError("Can't execute " + commandArgs->at(0) + " in subscribed mode");
+}
+
