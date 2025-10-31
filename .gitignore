@@ -47,3 +47,8 @@ _deps
 
 build/
 vcpkg_installed
+
+# python
+*.pyc
+__pycache__/
+.venv
