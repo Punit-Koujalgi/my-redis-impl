@@ -1,9 +1,7 @@
 import gradio as gr
 import redis
 import subprocess
-import threading
 import time
-import json
 import shlex
 from typing import List, Tuple, Optional
 import os
