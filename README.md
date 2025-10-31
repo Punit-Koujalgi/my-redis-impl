@@ -1,4 +1,4 @@
-# 🚀 Redis Implementation in C++
+# 🚀 Redis Implementation in C++ - check out [demo](https://huggingface.co/spaces/pkoujalgi/My-Redis-Impl)
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://shields.io/) [![Redis Protocol](https://img.shields.io/badge/protocol-RESP-red.svg)](https://redis.io/docs/latest/develop/reference/protocol-spec/) [![C++](https://img.shields.io/badge/C%2B%2B-23-blue.svg)](https://isocpp.org/) [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -22,7 +22,7 @@ This Redis implementation provides a comprehensive feature set that mirrors the 
 - 🔤 **RESP Protocol** fully compliant Redis Serialization Protocol
 - 💾 **In-memory data storage** with multiple data types
 - 🔄 **Persistence** with RDB snapshots
-- 🧵 **Multi-threading** support for concurrent operations
+- 🔁 **Replication** - Master-slave replication with real-time sync
 
 ### 📊 Data Structures
 - 📝 **Strings** - Basic key-value storage with expiration support
@@ -33,7 +33,7 @@ This Redis implementation provides a comprehensive feature set that mirrors the 
 ### 🚀 Advanced Capabilities
 - 💸 **Transactions** - ACID transactions with MULTI/EXEC/DISCARD
 - 📢 **Pub/Sub** - Message publishing and subscription system
-- 🔁 **Replication** - Master-slave replication with real-time sync
+- 🧵 **Multi-slave Replication** - support for multiple slaves and **WAIT** command
 - ⏰ **Expiration** - TTL support for automatic key cleanup
 - 🔍 **Pattern matching** - KEYS command with glob patterns
 
@@ -42,7 +42,7 @@ This Redis implementation provides a comprehensive feature set that mirrors the 
 ### Prerequisites
 - **CMake** 3.13 or higher
 - **C++23** compatible compiler (GCC 11+ or Clang 14+)
-- **Make** or **Ninja** build system
+- **Make** build system
 
 ### Build Steps
 
@@ -84,7 +84,7 @@ The executable `server` will be created in the `build` directory.
 The server will start listening for connections and display:
 ```
 Signal handling setup complete..
-Redis port: 9999
+Redis port: 1234
 Starting EventLoop...
 ```
 
