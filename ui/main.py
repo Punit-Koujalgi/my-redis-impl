@@ -33,6 +33,11 @@ class RedisPlayground:
 			if not os.path.exists(server_path):
 				return False, "❌ Server binary not found. Please run 'cmake --build build' first."
 			
+			# Ensure the server binary has execute permissions
+			import stat
+			current_permissions = os.stat(server_path).st_mode
+			os.chmod(server_path, current_permissions | stat.S_IEXEC)
+			
 			# Start the server
 			self.server_process = subprocess.Popen(
 				[server_path],
@@ -173,7 +178,7 @@ def create_ui():
 	}
 	"""
 	
-	with gr.Blocks(css=css, title="Redis Playground 🚀", theme=gr.themes.Default()) as demo: #type: ignore
+	with gr.Blocks(css=css, title="Redis Playground 🚀", theme=gr.themes.Default(), fill_width=True) as demo: #type: ignore
 		
 		with gr.Row():
 			with gr.Column():
