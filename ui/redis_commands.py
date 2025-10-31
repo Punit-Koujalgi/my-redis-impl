@@ -804,28 +804,5 @@ REDIS_COMMANDS = {
         **Behind the scenes:** 🎛️ Peek into your Redis server's configuration!
         """,
         "example": "CONFIG GET dir\nCONFIG GET dbfilename"
-    },
-    
-    "COMMAND": {
-        "description": """
-        ## 📝 COMMAND
-        
-        **Purpose:** Get information about Redis commands
-        
-        **Syntax:** `COMMAND`
-        
-        **What it does:**
-        - Returns information about available commands
-        - Shows command metadata and documentation
-        - Useful for introspection and tooling
-        
-        **Use cases:**
-        - Building Redis clients
-        - Command discovery
-        - Documentation generation
-        
-        **Meta command:** 🤖 A command that tells you about commands!
-        """,
-        "example": "COMMAND"
     }
 }

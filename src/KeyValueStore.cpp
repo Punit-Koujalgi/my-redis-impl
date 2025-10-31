@@ -7,6 +7,7 @@
 #include <fstream>
 #include <sys/time.h>
 #include <cassert>
+#include <regex>
 
 const std::string KeyValueStore::get(const std::string& key)
 {
@@ -314,9 +315,71 @@ std::unique_ptr<std::vector<std::string>> KeyValueStore::getAllKeys(const std::s
 
 	std::cout << "Got regex: " << regex << std::endl;
 
-	for (const auto& key: m_mapKeyValues)
+	// If regex is empty or "*", return all keys
+	if (regex.empty() || regex == "*")
 	{
-		result->push_back(key.first);
+		for (const auto& key: m_mapKeyValues)
+		{
+			result->push_back(key.first);
+		}
+		return result;
+	}
+
+	try 
+	{
+		// Convert Redis-style glob pattern to regex if needed
+		std::string regexPattern = regex;
+		
+		// Simple glob-to-regex conversion for Redis KEYS command compatibility
+		// Replace * with .* and ? with .
+		std::string convertedPattern;
+		for (char c : regexPattern) 
+		{
+			switch (c) 
+			{
+				case '*':
+					convertedPattern += ".*";
+					break;
+				case '?':
+					convertedPattern += ".";
+					break;
+				case '.':
+				case '^':
+				case '$':
+				case '+':
+				case '{':
+				case '}':
+				case '(':
+				case ')':
+				case '[':
+				case ']':
+				case '\\':
+				case '|':
+					// Escape regex special characters
+					convertedPattern += "\\";
+					convertedPattern += c;
+					break;
+				default:
+					convertedPattern += c;
+					break;
+			}
+		}
+		
+		std::regex pattern(convertedPattern);
+
+		// Filter keys that match the regex pattern
+		for (const auto& key: m_mapKeyValues)
+		{
+			if (std::regex_match(key.first, pattern))
+			{
+				result->push_back(key.first);
+			}
+		}
+	}
+	catch (const std::regex_error& e)
+	{
+		std::cout << "Invalid regex pattern: " << regex << " Error: " << e.what() << std::endl;
+		// Return empty result for invalid regex
 	}
 
 	return result;

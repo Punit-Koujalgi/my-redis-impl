@@ -29,8 +29,8 @@ class RedisPlayground:
 		
 		try:
 			# Change to the project root directory
-			project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-			server_path = os.path.join(project_root, "build", "server")
+			project_root = os.path.dirname(os.path.abspath(__file__))
+			server_path = os.path.join(project_root, "server")
 			
 			if not os.path.exists(server_path):
 				return False, "❌ Server binary not found. Please run 'cmake --build build' first."
@@ -175,13 +175,13 @@ def create_ui():
 	}
 	"""
 	
-	with gr.Blocks(css=css, title="Redis Playground 🚀", theme=gr.themes.Soft()) as demo: #type: ignore
+	with gr.Blocks(css=css, title="Redis Playground 🚀", theme=gr.themes.Default()) as demo: #type: ignore
 		
 		with gr.Row():
 			with gr.Column():
 				# Header
 				gr.Markdown("""
-				# 🚀 Redis Playground
+				# 🚀 Redis Playground!
 				
 				Welcome to the **Redis Playground**! This is an interactive environment to explore Redis commands and understand the RESP (Redis Serialization Protocol) in action.
 				
