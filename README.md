@@ -1,43 +1,43 @@
-# 🚀 Redis Implementation in C++ - check out [demo](https://huggingface.co/spaces/pkoujalgi/My-Redis-Impl)
+# Redis Implementation in C++ - check out [demo](https://huggingface.co/spaces/pkoujalgi/My-Redis-Impl)
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://shields.io/) [![Redis Protocol](https://img.shields.io/badge/protocol-RESP-red.svg)](https://redis.io/docs/latest/develop/reference/protocol-spec/) [![C++](https://img.shields.io/badge/C%2B%2B-23-blue.svg)](https://isocpp.org/) [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 A high-performance Redis server implementation written in modern C++23, featuring comprehensive support for Redis core functionality, data structures, transactions, pub/sub, streams, and replication.
 
-## 📋 Table of Contents
+## Table of Contents
 
-- [🔥 Features](#-features)
-- [🔧 Building the Server](#-building-the-server)
-- [🚀 Running the Server](#-running-the-server)
-- [🔌 Connecting with redis-cli](#-connecting-with-redis-cli)
-- [💻 Web UI](#-web-ui)
-- [📚 Supported Commands](#-supported-commands)
+- [Features](#-features)
+- [Building the Server](#-building-the-server)
+- [Running the Server](#-running-the-server)
+- [Connecting with redis-cli](#-connecting-with-redis-cli)
+- [Web UI](#-web-ui)
+- [Supported Commands](#-supported-commands)
 
-## 🔥 Features
+## Features
 
 This Redis implementation provides a comprehensive feature set that mirrors the official Redis server:
 
-### 🌟 Core Features
-- ⚡ **High-performance TCP server** with concurrent client support
-- 🔤 **RESP Protocol** fully compliant Redis Serialization Protocol
-- 💾 **In-memory data storage** with multiple data types
-- 🔄 **Persistence** with RDB snapshots
-- 🔁 **Replication** - Master-slave replication with real-time sync
+### Core Features
+- **High-performance TCP server** with concurrent client support
+- **RESP Protocol** fully compliant Redis Serialization Protocol
+- **In-memory data storage** with multiple data types
+- **Persistence** with RDB snapshots
+- **Replication** - Master-slave replication with real-time sync
 
-### 📊 Data Structures
-- 📝 **Strings** - Basic key-value storage with expiration support
-- 📋 **Lists** - Doubly-linked lists with push/pop operations
-- 🌊 **Streams** - Log-based data structure for real-time data
-- 🏷️ **Type system** with dynamic type checking
+### Data Structures
+- **Strings** - Basic key-value storage with expiration support
+- **Lists** - Doubly-linked lists with push/pop operations
+- **Streams** - Log-based data structure for real-time data
+- **Type system** with dynamic type checking
 
-### 🚀 Advanced Capabilities
-- 💸 **Transactions** - ACID transactions with MULTI/EXEC/DISCARD
-- 📢 **Pub/Sub** - Message publishing and subscription system
-- 🧵 **Multi-slave Replication** - support for multiple slaves and **WAIT** command
-- ⏰ **Expiration** - TTL support for automatic key cleanup
-- 🔍 **Pattern matching** - KEYS command with glob patterns
+### Advanced Capabilities
+- **Transactions** - ACID transactions with MULTI/EXEC/DISCARD
+- **Pub/Sub** - Message publishing and subscription system
+- **Multi-slave Replication** - support for multiple slaves and **WAIT** command
+- **Expiration** - TTL support for automatic key cleanup
+- **Pattern matching** - KEYS command with glob patterns
 
-## 🔧 Building the Server
+## Building the Server
 
 ### Prerequisites
 - **CMake** 3.13 or higher
@@ -69,7 +69,7 @@ This Redis implementation provides a comprehensive feature set that mirrors the 
 
 The executable `server` will be created in the `build` directory.
 
-## 🚀 Running the Server
+## Running the Server
 
 ### Default Port (6379)
 ```bash
@@ -99,13 +99,13 @@ redis-cli -p 6379
 
 ### Example Commands
 
-#### 🏓 Test Connection
+#### Test Connection
 ```bash
 127.0.0.1:6379> PING
 PONG
 ```
 
-#### 📝 String Operations
+#### String Operations
 ```bash
 127.0.0.1:6379> SET mykey "Hello Redis!"
 OK
@@ -117,7 +117,7 @@ OK
 (integer) 43
 ```
 
-#### 📋 List Operations
+#### List Operations
 ```bash
 127.0.0.1:6379> RPUSH mylist "first" "second" "third"
 (integer) 3
@@ -131,7 +131,7 @@ OK
 (integer) 2
 ```
 
-#### 🌊 Stream Operations
+#### Stream Operations
 ```bash
 127.0.0.1:6379> XADD mystream * name "Alice" age "30"
 "1640995200000-0"
@@ -150,7 +150,7 @@ OK
       4) "25"
 ```
 
-#### 💸 Transaction Example
+#### Transaction Example
 ```bash
 127.0.0.1:6379> MULTI
 OK
@@ -166,7 +166,7 @@ QUEUED
 3) (integer) 44
 ```
 
-#### 📢 Pub/Sub Example
+#### Pub/Sub Example
 ```bash
 # In terminal 1 (Subscriber)
 127.0.0.1:6379> SUBSCRIBE news
@@ -185,11 +185,11 @@ Reading messages... (press Ctrl-C to quit)
 3) "Breaking: Redis implementation completed!"
 ```
 
-## 💻 Web UI
+## Web UI
 
 This project includes a beautiful web-based UI built with Gradio for interactive Redis exploration!
 
-### 🛠️ Setup UI
+### Setup UI
 
 1. **Navigate to UI directory**:
    ```bash
@@ -209,15 +209,15 @@ This project includes a beautiful web-based UI built with Gradio for interactive
 4. **Open in browser**:
    Visit the link displayed in terminal (typically `http://127.0.0.1:7860`)
 
-### ✨ UI Features
-- 🎯 **Command Explorer** - Browse all supported commands with examples
-- 🖥️ **Interactive Terminal** - Execute Redis commands in real-time
-- 👁️ **RESP Protocol Viewer** - See raw protocol messages
-- 🚀 **Auto Server Management** - Automatically manages Redis server
-- 💡 **Smart Examples** - Pre-built command examples
-- 🎨 **Beautiful Interface** - Modern, clean design
+### UI Features
+- **Command Explorer** - Browse all supported commands with examples
+- **Interactive Terminal** - Execute Redis commands in real-time
+- **RESP Protocol Viewer** - See raw protocol messages
+- **Auto Server Management** - Automatically manages Redis server
+- **Smart Examples** - Pre-built command examples
+- **Beautiful Interface** - Modern, clean design
 
-## 📝 How to start your own Replica?
+## How to start your own Replica?
 
 ```bash
 ./build/server --port <PORT> --replicaof "<MASTER_HOST> <MASTER_PORT>"
@@ -307,8 +307,6 @@ timeout: The maximum time (in milliseconds) the client is willing to wait.
 ---
 
 <div align="center">
-
-**🎉 Built with ❤️ using modern C++23**
 
 *A complete Redis implementation showcasing advanced systems programming concepts*
 
