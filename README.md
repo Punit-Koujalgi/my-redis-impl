@@ -1,7 +1,5 @@
 # Redis Implementation in C++ - check out [demo](https://huggingface.co/spaces/pkoujalgi/My-Redis-Impl)
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://shields.io/) [![Redis Protocol](https://img.shields.io/badge/protocol-RESP-red.svg)](https://redis.io/docs/latest/develop/reference/protocol-spec/) [![C++](https://img.shields.io/badge/C%2B%2B-23-blue.svg)](https://isocpp.org/) [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-
 A high-performance Redis server implementation written in modern C++23, featuring comprehensive support for Redis core functionality, data structures, transactions, pub/sub, streams, and replication.
 
 ## Table of Contents
